@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI 리터러시 게임 — 역설계 기반 학습</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Segoe UI',Roboto,'Malgun Gothic',sans-serif;background:#f4f6fb;color:#222;line-height:1.5}
+header{background:linear-gradient(135deg,#3a5bd9,#6b46c1);color:#fff;padding:18px 24px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+header h1{font-size:20px;font-weight:700}
+header p{font-size:13px;opacity:.9;margin-top:4px}
+.tabs{display:flex;background:#fff;border-bottom:1px solid #e4e7ef;padding:0 24px;gap:4px;overflow-x:auto}
+.tab{padding:14px 20px;cursor:pointer;border:none;background:transparent;font-size:15px;font-weight:500;color:#666;border-bottom:3px solid transparent;white-space:nowrap}
+.tab.active{color:#3a5bd9;border-bottom-color:#3a5bd9}
+.tab:hover{background:#f4f6fb}
+main{max-width:1400px;margin:0 auto;padding:24px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media (max-width:900px){.split{grid-template-columns:1fr}}
+.panel{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.panel h2{font-size:16px;margin-bottom:14px;color:#3a5bd9;display:flex;align-items:center;gap:8px}
+.panel h2 .badge{background:#e9edff;color:#3a5bd9;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500}
+
+/* 게임 공통 */
+.screen{background:#2c2f3a;color:#fff;border-radius:8px;padding:16px;min-height:160px;font-family:'Courier New',monospace}
+.btn{padding:10px 14px;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500;transition:all .15s}
+.btn-primary{background:#3a5bd9;color:#fff}
+.btn-primary:hover{background:#2a47b8}
+.btn-ghost{background:#f0f2f8;color:#333}
+.btn-ghost:hover{background:#e4e7ef}
+.btn-money{background:#fff7e6;color:#b45309;border:1px solid #fcd34d}
+.btn-money:hover{background:#fef3c7}
+.grid{display:grid;gap:10px;margin-top:12px}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+.grid-3{grid-template-columns:repeat(3,1fr)}
+.grid-2{grid-template-columns:repeat(2,1fr)}
+.item{background:#f8fafc;border:1px solid #e4e7ef;border-radius:8px;padding:12px;text-align:center;cursor:pointer;transition:all .15s}
+.item:hover{border-color:#3a5bd9;transform:translateY(-1px)}
+.item.selected{background:#e9edff;border-color:#3a5bd9}
+.item .name{font-size:13px;font-weight:500}
+.item .price{font-size:12px;color:#666;margin-top:4px}
+.status{background:#f8fafc;border-left:3px solid #3a5bd9;padding:10px 14px;margin:12px 0;font-size:13px;border-radius:0 6px 6px 0}
+.log{background:#1a1d26;color:#a8e6a3;padding:12px;border-radius:6px;font-family:'Courier New',monospace;font-size:12px;min-height:80px;max-height:140px;overflow-y:auto;margin-top:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+/* 순서도 퍼즐 */
+.puzzle-desc{font-size:13px;color:#666;margin-bottom:12px;padding:10px;background:#fffbeb;border-radius:6px;border-left:3px solid #fcd34d}
+.slots{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.slot{background:#f0f2f8;border:2px dashed #c7cddf;border-radius:8px;padding:10px 14px;min-height:44px;display:flex;align-items:center;justify-content:space-between;font-size:13px;color:#999}
+.slot.filled{background:#e9edff;border-style:solid;border-color:#3a5bd9;color:#222;font-weight:500}
+.slot.correct{background:#dcfce7;border-color:#16a34a;color:#14532d}
+.slot.wrong{background:#fee2e2;border-color:#dc2626;color:#7f1d1d}
+.slot-idx{font-size:11px;color:#888;margin-right:8px;font-weight:400}
+.slot-remove{background:transparent;border:none;color:#999;cursor:pointer;font-size:16px;padding:0 4px}
+.blocks{display:flex;flex-wrap:wrap;gap:8px}
+.block{background:#fff;border:1.5px solid #c7cddf;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:12px;transition:all .15s;user-select:none}
+.block:hover{border-color:#3a5bd9;background:#e9edff}
+.block.used{opacity:.3;pointer-events:none}
+.check-row{display:flex;gap:8px;margin-top:14px}
+.result{margin-top:12px;padding:12px;border-radius:8px;font-size:14px;font-weight:500;display:none}
+.result.show{display:block}
+.result.success{background:#dcfce7;color:#14532d}
+.result.fail{background:#fee2e2;color:#7f1d1d}
+
+.footer{text-align:center;padding:30px;font-size:12px;color:#888}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧠 AI 리터러시 게임 — 역설계 기반 학습</h1>
+  <p>왼쪽에서 프로그램을 체험하고, 오른쪽에서 순서도 퍼즐을 조립해 보세요</p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-tab="vending">🥤 자판기</button>
+  <button class="tab" data-tab="kiosk">🍔 햄버거 키오스크</button>
+  <button class="tab" data-tab="transit">🚌 교통카드 단말기</button>
+</div>
+
+<main>
+
+<!-- ===== 자판기 ===== -->
+<section id="tab-vending" class="tab-content">
+<div class="split">
+  <div class="panel">
+    <h2>🥤 자판기 체험 <span class="badge">난이도 2</span></h2>
+    <div class="screen">
+      <div style="font-size:12px;opacity:.7">잔액</div>
+      <div id="v-bal" style="font-size:28px;font-weight:700">0원</div>
+      <div id="v-msg" style="margin-top:10px;font-size:13px;color:#a8e6a3;min-height:20px">음료를 선택하고 금액을 투입하세요</div>
+    </div>
+    <div class="grid grid-4">
+      <div class="item" data-v="콜라" data-p="1000"><div class="name">콜라</div><div class="price">1,000원</div></div>
+      <div class="item" data-v="사이다" data-p="1000"><div class="name">사이다</div><div class="price">1,000원</div></div>
+      <div class="item" data-v="오렌지" data-p="1500"><div class="name">오렌지주스</div><div class="price">1,500원</div></div>
+      <div class="item" data-v="생수" data-p="500"><div class="name">생수</div><div class="price">500원</div></div>
+    </div>
+    <div class="row">
+      <button class="btn btn-money" onclick="vAdd(100)">+100원</button>
+      <button class="btn btn-money" onclick="vAdd(500)">+500원</button>
+      <button class="btn btn-money" onclick="vAdd(1000)">+1,000원</button>
+      <button class="btn btn-primary" onclick="vBuy()">구매</button>
+      <button class="btn btn-ghost" onclick="vReset()">초기화</button>
+    </div>
+    <div class="log" id="v-log">대기 중...</div>
+  </div>
+
+  <div class="panel">
+    <h2>🧩 순서도 퍼즐 <span class="badge">9블록</span></h2>
+    <div class="puzzle-desc">자판기의 동작 순서를 맞게 배열해 보세요. 블록을 클릭하면 다음 빈 슬롯에 들어갑니다.</div>
+    <div class="slots" id="v-slots"></div>
+    <div class="blocks" id="v-blocks"></div>
+    <div class="check-row">
+      <button class="btn btn-primary" onclick="checkPuzzle('v')">정답 확인</button>
+      <button class="btn btn-ghost" onclick="resetPuzzle('v')">다시 하기</button>
+    </div>
+    <div class="result" id="v-result"></div>
+  </div>
+</div>
+</section>
+
+<!-- ===== 키오스크 ===== -->
+<section id="tab-kiosk" class="tab-content" style="display:none">
+<div class="split">
+  <div class="panel">
+    <h2>🍔 햄버거 키오스크 <span class="badge">난이도 3</span></h2>
+    <div class="screen">
+      <div id="k-stage" style="font-size:13px;opacity:.7">STAGE 1 — 메뉴 선택</div>
+      <div id="k-total" style="font-size:28px;font-weight:700;margin-top:6px">0원</div>
+      <div id="k-msg" style="margin-top:10px;font-size:13px;color:#a8e6a3;min-height:20px">원하는 버거를 선택하세요</div>
+    </div>
+
+    <div id="k-step1" class="grid grid-2" style="margin-top:12px">
+      <div class="item" data-m="불고기버거" data-p="5000"><div class="name">불고기버거</div><div class="price">5,000원</div></div>
+      <div class="item" data-m="치즈버거" data-p="4500"><div class="name">치즈버거</div><div class="price">4,500원</div></div>
+      <div class="item" data-m="새우버거" data-p="5500"><div class="name">새우버거</div><div class="price">5,500원</div></div>
+      <div class="item" data-m="치킨버거" data-p="4800"><div class="name">치킨버거</div><div class="price">4,800원</div></div>
+    </div>
+
+    <div id="k-step2" style="display:none;margin-top:12px">
+      <div class="status">💡 세트로 변경하시면 음료 + 감자튀김이 추가됩니다 (+2,000원)</div>
+      <div class="row">
+        <button class="btn btn-primary" onclick="kSet(true)">✅ 세트로 변경</button>
+        <button class="btn btn-ghost" onclick="kSet(false)">단품으로 주문</button>
+      </div>
+    </div>
+
+    <div id="k-step3" style="display:none;margin-top:12px">
+      <div class="status">음료를 선택하세요</div>
+      <div class="grid grid-3">
+        <div class="item" onclick="kDrink('콜라')"><div class="name">콜라</div></div>
+        <div class="item" onclick="kDrink('사이다')"><div class="name">사이다</div></div>
+        <div class="item" onclick="kDrink('제로콜라')"><div class="name">제로콜라</div></div>
+      </div>
+    </div>
+
+    <div id="k-step4" style="display:none;margin-top:12px">
+      <div class="status">주문 내역을 확인하세요</div>
+      <div id="k-summary" style="padding:10px;background:#f8fafc;border-radius:6px;font-size:13px;margin:8px 0"></div>
+      <div class="row">
+        <button class="btn btn-primary" onclick="kPay()">결제</button>
+        <button class="btn btn-ghost" onclick="kReset()">처음부터</button>
+      </div>
+    </div>
+
+    <div class="log" id="k-log">STAGE 1 대기 중...</div>
+  </div>
+
+  <div class="panel">
+    <h2>🧩 순서도 퍼즐 <span class="badge">9블록</span></h2>
+    <div class="puzzle-desc">키오스크의 주문 플로우를 논리적 순서로 배열하세요. '세트 제안'은 왜 자동으로 나타날까요?</div>
+    <div class="slots" id="k-slots"></div>
+    <div class="blocks" id="k-blocks"></div>
+    <div class="check-row">
+      <button class="btn btn-primary" onclick="checkPuzzle('k')">정답 확인</button>
+      <button class="btn btn-ghost" onclick="resetPuzzle('k')">다시 하기</button>
+    </div>
+    <div class="result" id="k-result"></div>
+  </div>
+</div>
+</section>
+
+<!-- ===== 교통카드 ===== -->
+<section id="tab-transit" class="tab-content" style="display:none">
+<div class="split">
+  <div class="panel">
+    <h2>🚌 교통카드 단말기 <span class="badge">난이도 1</span></h2>
+    <div class="screen">
+      <div style="font-size:12px;opacity:.7">카드 잔액</div>
+      <div id="t-bal" style="font-size:28px;font-weight:700">3,500원</div>
+      <div style="font-size:12px;opacity:.7;margin-top:6px">기본 요금 1,350원</div>
+      <div id="t-msg" style="margin-top:10px;font-size:13px;color:#a8e6a3;min-height:20px">카드를 태그하세요</div>
+    </div>
+    <div class="row">
+      <button class="btn btn-primary" onclick="tTag()">💳 카드 태그</button>
+      <button class="btn btn-money" onclick="tCharge(5000)">+5,000원 충전</button>
+      <button class="btn btn-money" onclick="tCharge(10000)">+10,000원 충전</button>
+      <button class="btn btn-ghost" onclick="tReset()">초기화</button>
+    </div>
+    <div class="status" style="margin-top:14px">💡 같은 '태그' 동작이지만 <b>잔액(상태)</b>에 따라 결과가 달라집니다. 이것이 <b>상태(State)</b> 개념입니다.</div>
+    <div class="log" id="t-log">단말기 대기 중...</div>
+  </div>
+
+  <div class="panel">
+    <h2>🧩 순서도 퍼즐 <span class="badge">9블록</span></h2>
+    <div class="puzzle-desc">교통카드 단말기의 동작을 조건 분기 순서에 맞게 배열하세요.</div>
+    <div class="slots" id="t-slots"></div>
+    <div class="blocks" id="t-blocks"></div>
+    <div class="check-row">
+      <button class="btn btn-primary" onclick="checkPuzzle('t')">정답 확인</button>
+      <button class="btn btn-ghost" onclick="resetPuzzle('t')">다시 하기</button>
+    </div>
+    <div class="result" id="t-result"></div>
+  </div>
+</div>
+</section>
+
+<div class="footer">KAC 미디어리터러시연구소 · 앙트십랩 · 역설계 기반 AI 리터러시 학습 프로토타입</div>
+
+</main>
+
+<script>
+// ===== 탭 전환 =====
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(x=>x.style.display='none');
+    document.getElementById('tab-'+t.dataset.tab).style.display='block';
+  };
+});
+
+// ===== 자판기 =====
+let vBal=0,vSel=null,vPrice=0;
+function vLog(m){const l=document.getElementById('v-log');l.textContent=m+'\n'+l.textContent}
+function vUpd(){document.getElementById('v-bal').textContent=vBal.toLocaleString()+'원'}
+document.querySelectorAll('#tab-vending .item').forEach(it=>{
+  it.onclick=()=>{
+    document.querySelectorAll('#tab-vending .item').forEach(x=>x.classList.remove('selected'));
+    it.classList.add('selected');
+    vSel=it.dataset.v;vPrice=+it.dataset.p;
+    document.getElementById('v-msg').textContent=vSel+' 선택됨 ('+vPrice.toLocaleString()+'원)';
+    vLog('🔹 음료 선택: '+vSel);
+  };
+});
+function vAdd(n){vBal+=n;vUpd();vLog('💰 '+n+'원 투입 (잔액 '+vBal+'원)')}
+function vBuy(){
+  if(!vSel){document.getElementById('v-msg').textContent='⚠️ 음료를 먼저 선택하세요';return}
+  if(vBal>=vPrice){
+    const change=vBal-vPrice;
+    document.getElementById('v-msg').textContent='✅ '+vSel+' 제공! 거스름돈 '+change+'원';
+    vLog('✅ 제공: '+vSel+', 거스름돈: '+change+'원');
+    vBal=0;vSel=null;vPrice=0;
+    document.querySelectorAll('#tab-vending .item').forEach(x=>x.classList.remove('selected'));
+    vUpd();
+  }else{
+    document.getElementById('v-msg').textContent='❌ 금액 부족 ('+(vPrice-vBal)+'원 더 필요)';
+    vLog('❌ 금액 부족: '+(vPrice-vBal)+'원 부족');
+  }
+}
+function vReset(){vBal=0;vSel=null;vPrice=0;vUpd();document.querySelectorAll('#tab-vending .item').forEach(x=>x.classList.remove('selected'));document.getElementById('v-msg').textContent='초기화됨';document.getElementById('v-log').textContent='대기 중...'}
+
+// ===== 키오스크 =====
+let kMenu=null,kMp=0,kIsSet=false,kDr=null,kTotal=0;
+function kLog(m){const l=document.getElementById('k-log');l.textContent=m+'\n'+l.textContent}
+function kStage(n,t){document.getElementById('k-stage').textContent='STAGE '+n+' — '+t}
+document.querySelectorAll('#k-step1 .item').forEach(it=>{
+  it.onclick=()=>{
+    kMenu=it.dataset.m;kMp=+it.dataset.p;kTotal=kMp;
+    document.getElementById('k-total').textContent=kTotal.toLocaleString()+'원';
+    document.getElementById('k-msg').textContent=kMenu+' 선택됨';
+    kLog('🔹 메뉴: '+kMenu+' ('+kMp+'원)');
+    document.getElementById('k-step1').style.display='none';
+    document.getElementById('k-step2').style.display='block';
+    kStage(2,'세트 변경 제안');
+    kLog('💡 비즈니스 로직: 단품 선택 후 자동으로 세트 제안 화면이 등장');
+  };
+});
+function kSet(yes){
+  kIsSet=yes;
+  document.getElementById('k-step2').style.display='none';
+  if(yes){
+    kTotal+=2000;
+    document.getElementById('k-total').textContent=kTotal.toLocaleString()+'원';
+    document.getElementById('k-step3').style.display='block';
+    kStage(3,'음료 선택');
+    kLog('✅ 세트 변경 (+2,000원)');
+  }else{
+    kLog('단품 유지');
+    kSummary();
+  }
+}
+function kDrink(d){
+  kDr=d;
+  document.getElementById('k-step3').style.display='none';
+  kLog('🥤 음료: '+d);
+  kSummary();
+}
+function kSummary(){
+  document.getElementById('k-step4').style.display='block';
+  kStage(4,'결제 확인');
+  let s=kMenu+' ('+kMp+'원)';
+  if(kIsSet)s+='<br>+ 세트 (음료+감자튀김, +2,000원)<br>+ 선택 음료: '+kDr;
+  s+='<br><b>총 '+kTotal.toLocaleString()+'원</b>';
+  document.getElementById('k-summary').innerHTML=s;
+}
+function kPay(){
+  document.getElementById('k-msg').textContent='✅ 결제 완료: '+kTotal.toLocaleString()+'원';
+  kLog('💳 결제 완료');
+  setTimeout(kReset,1500);
+}
+function kReset(){kMenu=null;kMp=0;kIsSet=false;kDr=null;kTotal=0;document.getElementById('k-total').textContent='0원';['k-step2','k-step3','k-step4'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('k-step1').style.display='grid';kStage(1,'메뉴 선택');document.getElementById('k-msg').textContent='원하는 버거를 선택하세요';document.getElementById('k-log').textContent='STAGE 1 대기 중...'}
+
+// ===== 교통카드 =====
+let tBal=3500;const TFARE=1350;
+function tLog(m){const l=document.getElementById('t-log');l.textContent=m+'\n'+l.textContent}
+function tUpd(){document.getElementById('t-bal').textContent=tBal.toLocaleString()+'원'}
+function tTag(){
+  tLog('💳 카드 태그됨 (잔액 '+tBal+'원)');
+  if(tBal>=TFARE){
+    tBal-=TFARE;
+    tUpd();
+    document.getElementById('t-msg').textContent='🎵 띵! 승인 — 잔액 '+tBal+'원';
+    tLog('✅ 승인: '+TFARE+'원 차감, 잔액 '+tBal+'원');
+  }else{
+    document.getElementById('t-msg').textContent='🚨 잔액 부족 ('+(TFARE-tBal)+'원 부족)';
+    tLog('❌ 거부: '+(TFARE-tBal)+'원 부족');
+  }
+}
+function tCharge(n){tBal+=n;tUpd();document.getElementById('t-msg').textContent=n.toLocaleString()+'원 충전 완료';tLog('💰 충전: +'+n+'원 (잔액 '+tBal+'원)')}
+function tReset(){tBal=3500;tUpd();document.getElementById('t-msg').textContent='초기화됨';document.getElementById('t-log').textContent='단말기 대기 중...'}
+
+// ===== 순서도 퍼즐 엔진 =====
+const PUZZLES={
+  v:{
+    answer:['시작','음료를 선택한다','금액을 투입한다','투입금액 ≥ 가격?','YES: 음료를 제공한다','YES: 거스름돈 계산','YES: 거스름돈 반환','NO: 금액 부족 안내','끝'],
+    blocks:['음료를 선택한다','YES: 거스름돈 반환','NO: 금액 부족 안내','시작','투입금액 ≥ 가격?','끝','YES: 음료를 제공한다','금액을 투입한다','YES: 거스름돈 계산']
+  },
+  k:{
+    answer:['시작','메뉴를 선택한다','세트 변경 제안 화면','세트로 변경?','YES: 음료/사이드 선택','YES: 세트 금액 추가','NO: 단품 가격 유지','결제를 진행한다','끝'],
+    blocks:['세트로 변경?','결제를 진행한다','시작','YES: 세트 금액 추가','NO: 단품 가격 유지','메뉴를 선택한다','끝','세트 변경 제안 화면','YES: 음료/사이드 선택']
+  },
+  t:{
+    answer:['시작','카드를 단말기에 태그','카드 잔액을 확인한다','잔액 ≥ 요금?','YES: 잔액에서 요금 차감','YES: 승인음 & 잔액 표시','NO: 오류음 출력','NO: 잔액 부족 안내','끝'],
+    blocks:['YES: 승인음 & 잔액 표시','카드 잔액을 확인한다','NO: 오류음 출력','시작','끝','카드를 단말기에 태그','잔액 ≥ 요금?','YES: 잔액에서 요금 차감','NO: 잔액 부족 안내']
+  }
+};
+const state={};
+function initPuzzle(k){
+  state[k]={slots:Array(9).fill(null),used:new Set()};
+  const slotsEl=document.getElementById(k+'-slots');
+  const blocksEl=document.getElementById(k+'-blocks');
+  slotsEl.innerHTML='';blocksEl.innerHTML='';
+  for(let i=0;i<9;i++){
+    const s=document.createElement('div');s.className='slot';s.id=k+'-slot-'+i;
+    s.innerHTML='<span><span class="slot-idx">'+(i+1)+'.</span><span class="slot-text">빈 칸</span></span>';
+    s.onclick=()=>removeFromSlot(k,i);
+    slotsEl.appendChild(s);
+  }
+  PUZZLES[k].blocks.forEach((b,i)=>{
+    const el=document.createElement('div');el.className='block';el.dataset.block=b;el.dataset.i=i;el.textContent=b;
+    el.onclick=()=>placeBlock(k,b,el);
+    blocksEl.appendChild(el);
+  });
+  document.getElementById(k+'-result').classList.remove('show');
+}
+function placeBlock(k,b,el){
+  const st=state[k];
+  const empty=st.slots.findIndex(x=>x===null);
+  if(empty<0)return;
+  st.slots[empty]=b;st.used.add(b);
+  el.classList.add('used');
+  const slot=document.getElementById(k+'-slot-'+empty);
+  slot.classList.add('filled');
+  slot.classList.remove('correct','wrong');
+  slot.innerHTML='<span><span class="slot-idx">'+(empty+1)+'.</span><span class="slot-text">'+b+'</span></span><button class="slot-remove" onclick="event.stopPropagation();removeFromSlot(\''+k+'\','+empty+')">✕</button>';
+}
+function removeFromSlot(k,i){
+  const st=state[k];
+  if(!st.slots[i])return;
+  const b=st.slots[i];
+  st.slots[i]=null;
+  // 같은 블록이 여러 개 있을 수 있으므로 첫 매칭 블록만 해제
+  const blocks=document.querySelectorAll('#'+k+'-blocks .block');
+  for(const el of blocks){if(el.dataset.block===b&&el.classList.contains('used')){el.classList.remove('used');break}}
+  const slot=document.getElementById(k+'-slot-'+i);
+  slot.classList.remove('filled','correct','wrong');
+  slot.innerHTML='<span><span class="slot-idx">'+(i+1)+'.</span><span class="slot-text">빈 칸</span></span>';
+}
+function checkPuzzle(k){
+  const st=state[k];const ans=PUZZLES[k].answer;
+  let correct=0;
+  for(let i=0;i<9;i++){
+    const slot=document.getElementById(k+'-slot-'+i);
+    slot.classList.remove('correct','wrong');
+    if(st.slots[i]===ans[i]){slot.classList.add('correct');correct++}
+    else if(st.slots[i]!==null){slot.classList.add('wrong')}
+  }
+  const r=document.getElementById(k+'-result');
+  r.classList.add('show');
+  if(correct===9){r.className='result show success';r.textContent='🎉 완벽합니다! 순서도를 모두 맞췄습니다.'}
+  else{r.className='result show fail';r.textContent='📝 '+correct+'/9 정답. 빨간 칸을 다시 배치해 보세요.'}
+}
+function resetPuzzle(k){initPuzzle(k)}
+
+// 초기화
+initPuzzle('v');initPuzzle('k');initPuzzle('t');
+</script>
+</body>
+</html>
