@@ -129,6 +129,47 @@ main{max-width:1600px;margin:0 auto;padding:20px}
 .bug-item::before{content:"🐛 ";margin-right:2px}
 
 .footer{text-align:center;padding:24px;font-size:11px;color:#888}
+
+/* 종료 상태 카드 */
+.end-state{display:none;margin-top:10px;padding:12px 14px;border-radius:8px;border-left:4px solid;line-height:1.5}
+.end-state.show{display:block;animation:popIn .25s ease}
+@keyframes popIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.end-state.reject{background:#fef2f2;border-color:#dc2626;color:#7f1d1d}
+.end-state.success{background:#dcfce7;border-color:#16a34a;color:#14532d}
+.end-state.partial{background:#fef3c7;border-color:#d97706;color:#78350f}
+.end-state-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;opacity:.7;margin-bottom:3px}
+.end-state-main{font-size:14px;font-weight:700;margin-bottom:3px}
+.end-state-detail{font-size:12px;opacity:.88}
+
+/* 디버거 종료 상태 */
+.debug-end{margin-top:10px;padding:10px 12px;border-radius:8px;border:1px solid;font-size:12px}
+.debug-end-label{font-size:10px;font-weight:700;letter-spacing:.6px;margin-bottom:4px;opacity:.7;text-transform:uppercase}
+.debug-end-row{display:grid;grid-template-columns:60px 1fr;gap:8px;padding:5px 0;font-size:12px;align-items:center}
+.debug-end-normal{background:#262a36;border-color:#3a3d4a;color:#a8e6a3}
+.debug-end-user-match{background:#1a2e1f;border-color:#14532d;color:#a8e6a3}
+.debug-end-user-mismatch{background:#2d1a1e;border-color:#7f1d1d;color:#fca5a5}
+.end-chip{display:inline-block;padding:3px 8px;border-radius:4px;font-family:'Courier New',monospace;font-weight:600;font-size:11px}
+.chip-reject{background:#7f1d1d;color:#fecaca}
+.chip-success{background:#14532d;color:#a8e6a3}
+.chip-partial{background:#78350f;color:#fcd34d}
+
+/* 번호표 (키오스크) */
+.ticket-box{margin-top:10px;padding:14px;background:#fff;border:2px dashed #d97706;border-radius:6px;display:flex;align-items:center;gap:14px;position:relative}
+.end-state.success .ticket-box{border-color:#16a34a}
+.ticket-box::before,.ticket-box::after{content:"";position:absolute;width:10px;height:10px;background:#dcfce7;border-radius:50%;top:50%;transform:translateY(-50%)}
+.end-state.partial .ticket-box::before,.end-state.partial .ticket-box::after{background:#fef3c7}
+.ticket-box::before{left:-6px}
+.ticket-box::after{right:-6px}
+.ticket-icon{font-size:28px}
+.ticket-body{flex:1}
+.ticket-label{font-size:10px;font-weight:700;letter-spacing:1px;opacity:.6;text-transform:uppercase}
+.ticket-num{font-size:26px;font-weight:900;font-family:'Courier New',monospace;letter-spacing:2px;line-height:1.1;margin-top:2px}
+.ticket-wait{font-size:11px;opacity:.75;margin-top:4px}
+
+/* 승인 영수증 (교통카드) */
+.receipt{margin-top:10px;padding:10px 12px;background:#fff;border-radius:6px;font-family:'Courier New',monospace;font-size:12px;border:1px solid rgba(0,0,0,.1)}
+.receipt-row{display:flex;justify-content:space-between;padding:2px 0}
+.receipt-row.total{border-top:1px dashed currentColor;margin-top:4px;padding-top:6px;font-weight:700}
 </style>
 </head>
 <body>
@@ -187,6 +228,7 @@ main{max-width:1600px;margin:0 auto;padding:20px}
       <button class="btn btn-primary" onclick="vBuy()">구매</button>
       <button class="btn btn-ghost" onclick="vReset()">초기화</button>
     </div>
+    <div id="v-end" class="end-state"></div>
     <div class="log" id="v-log">대기 중...</div>
   </div>
 
@@ -285,6 +327,7 @@ main{max-width:1600px;margin:0 auto;padding:20px}
         <button class="btn btn-ghost" onclick="kReset()">처음부터</button>
       </div>
     </div>
+    <div id="k-end" class="end-state"></div>
     <div class="log" id="k-log">STAGE 1 대기 중...</div>
   </div>
 
@@ -357,6 +400,7 @@ main{max-width:1600px;margin:0 auto;padding:20px}
       <button class="btn btn-ghost" onclick="tReset()">초기화</button>
     </div>
     <div class="status" style="margin-top:10px">💡 같은 '태그' 동작이지만 <b>잔액(상태)</b>에 따라 결과가 달라집니다 — <b>상태(State)</b> 개념입니다.</div>
+    <div id="t-end" class="end-state"></div>
     <div class="log" id="t-log">단말기 대기 중...</div>
   </div>
 
@@ -440,22 +484,40 @@ document.querySelectorAll('#tab-vending .panel-exp .item').forEach(it=>{
     vLog('🔹 음료 선택: '+vSel);
   };
 });
-function vAdd(n){vBal+=n;vUpd();vLog('💰 '+n+'원 투입 (잔액 '+vBal+'원)')}
+function vAdd(n){vBal+=n;vUpd();vLog('💰 '+n+'원 투입 (잔액 '+vBal+'원)');document.getElementById('v-end').classList.remove('show')}
+function showEnd(id,cls,label,main,detail){
+  const el=document.getElementById(id);
+  el.className='end-state show '+cls;
+  el.innerHTML='<div class="end-state-label">'+label+'</div><div class="end-state-main">'+main+'</div><div class="end-state-detail">'+detail+'</div>';
+}
 function vBuy(){
   if(!vSel){document.getElementById('v-msg').textContent='⚠️ 음료를 먼저 선택하세요';return}
-  if(vBal>=vPrice){
-    const change=vBal-vPrice;
-    document.getElementById('v-msg').textContent='✅ '+vSel+' 제공! 거스름돈 '+change+'원';
-    vLog('✅ 제공: '+vSel+', 거스름돈: '+change+'원');
+  if(vBal<vPrice){
+    /* 종료 상태 1: 잔액 부족 */
+    const short=vPrice-vBal;
+    document.getElementById('v-msg').textContent='❌ 잔액 부족 ('+short+'원 더 필요)';
+    vLog('❌ [종료] 잔액 부족 안내: '+short+'원 부족');
+    showEnd('v-end','reject','🔴 END STATE 1 · 잔액 부족','잔액 부족 안내 출력','투입 '+vBal+'원 / 가격 '+vPrice+'원 → '+short+'원 부족');
+  }else if(vBal===vPrice){
+    /* 종료 상태 2: 정확한 금액 → 음료만 제공 */
+    document.getElementById('v-msg').textContent='✅ '+vSel+' 제공 완료 (거스름돈 없음)';
+    vLog('✅ [종료] 음료 제공 완료 (투입금액 = 가격, 거스름돈 없음)');
+    showEnd('v-end','partial','🟡 END STATE 2 · 음료 제공 완료','음료 제공 완료 (거스름돈 없음)',vSel+' 제공 · 투입금액 '+vBal+'원 = 가격 '+vPrice+'원');
     vBal=0;vSel=null;vPrice=0;
     document.querySelectorAll('#tab-vending .panel-exp .item').forEach(x=>x.classList.remove('selected'));
     vUpd();
   }else{
-    document.getElementById('v-msg').textContent='❌ 금액 부족 ('+(vPrice-vBal)+'원 더 필요)';
-    vLog('❌ 금액 부족: '+(vPrice-vBal)+'원 부족');
+    /* 종료 상태 3: 초과 금액 → 음료 + 거스름돈 */
+    const change=vBal-vPrice;
+    document.getElementById('v-msg').textContent='✅ '+vSel+' 제공 + 거스름돈 '+change+'원 반환';
+    vLog('✅ [종료] 음료 제공 + 거스름돈 '+change+'원 반환 완료');
+    showEnd('v-end','success','🟢 END STATE 3 · 음료 + 거스름돈 제공 완료','음료 제공 완료 + 거스름돈 반환 완료',vSel+' 제공 · 거스름돈 '+change+'원 반환 (투입 '+vBal+'원 − 가격 '+vPrice+'원)');
+    vBal=0;vSel=null;vPrice=0;
+    document.querySelectorAll('#tab-vending .panel-exp .item').forEach(x=>x.classList.remove('selected'));
+    vUpd();
   }
 }
-function vReset(){vBal=0;vSel=null;vPrice=0;vUpd();document.querySelectorAll('#tab-vending .panel-exp .item').forEach(x=>x.classList.remove('selected'));document.getElementById('v-msg').textContent='초기화됨';document.getElementById('v-log').textContent='대기 중...'}
+function vReset(){vBal=0;vSel=null;vPrice=0;vUpd();document.querySelectorAll('#tab-vending .panel-exp .item').forEach(x=>x.classList.remove('selected'));document.getElementById('v-msg').textContent='초기화됨';document.getElementById('v-log').textContent='대기 중...';document.getElementById('v-end').classList.remove('show')}
 
 /* ========== A. 키오스크 정상 동작 ========== */
 let kMenu=null,kMp=0,kIsSet=false,kDr=null,kTotal=0;
@@ -496,8 +558,35 @@ function kSummary(){
   s+='<br><b>총 '+kTotal.toLocaleString()+'원</b>';
   document.getElementById('k-summary').innerHTML=s;
 }
-function kPay(){document.getElementById('k-msg').textContent='✅ 결제 완료: '+kTotal.toLocaleString()+'원';kLog('💳 결제 완료');setTimeout(kReset,1500)}
-function kReset(){kMenu=null;kMp=0;kIsSet=false;kDr=null;kTotal=0;document.getElementById('k-total').textContent='0원';['k-step2','k-step3','k-step4'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('k-step1').style.display='grid';kStage(1,'메뉴 선택');document.getElementById('k-msg').textContent='원하는 버거를 선택하세요';document.getElementById('k-log').textContent='STAGE 1 대기 중...'}
+function kPay(){
+  const orderNum=String(Math.floor(Math.random()*900)+100); // 3자리 번호표
+  const ticketHtml='<div class="ticket-box"><div class="ticket-icon">🎫</div><div class="ticket-body"><div class="ticket-label">주문 번호표 / ORDER TICKET</div><div class="ticket-num">#'+orderNum+'</div><div class="ticket-wait">진동벨이 울리면 픽업대로 와 주세요</div></div></div>';
+  if(kIsSet){
+    /* 종료 상태 2: 세트 결제 완료 */
+    document.getElementById('k-msg').textContent='✅ 세트 결제 완료 · 번호표 '+orderNum+'번 발급';
+    kLog('💳 [종료] 세트 결제 완료 · 번호표 발급 #'+orderNum);
+    const el=document.getElementById('k-end');
+    el.className='end-state show success';
+    el.innerHTML='<div class="end-state-label">🟢 END STATE 2 · 세트 결제 완료</div>'
+      +'<div class="end-state-main">결제가 정상 처리되었습니다</div>'
+      +'<div class="end-state-detail">주문: '+kMenu+' 세트 · 음료: '+kDr+' · 감자튀김 포함 · 총 결제 금액 <b>'+kTotal.toLocaleString()+'원</b></div>'
+      +ticketHtml
+      +'<div style="margin-top:10px;font-size:12px;color:#14532d;font-weight:600">🎉 주문이 완료되었습니다. 좋은 식사 되세요!</div>';
+  }else{
+    /* 종료 상태 1: 단품 결제 완료 */
+    document.getElementById('k-msg').textContent='✅ 단품 결제 완료 · 번호표 '+orderNum+'번 발급';
+    kLog('💳 [종료] 단품 결제 완료 · 번호표 발급 #'+orderNum);
+    const el=document.getElementById('k-end');
+    el.className='end-state show partial';
+    el.innerHTML='<div class="end-state-label">🟡 END STATE 1 · 단품 결제 완료</div>'
+      +'<div class="end-state-main">결제가 정상 처리되었습니다</div>'
+      +'<div class="end-state-detail">주문: '+kMenu+' 단품 · 총 결제 금액 <b>'+kTotal.toLocaleString()+'원</b></div>'
+      +ticketHtml
+      +'<div style="margin-top:10px;font-size:12px;color:#78350f;font-weight:600">🎉 주문이 완료되었습니다. 좋은 식사 되세요!</div>';
+  }
+  setTimeout(()=>{kReset(true)},3500);
+}
+function kReset(keepEnd){kMenu=null;kMp=0;kIsSet=false;kDr=null;kTotal=0;document.getElementById('k-total').textContent='0원';['k-step2','k-step3','k-step4'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('k-step1').style.display='grid';kStage(1,'메뉴 선택');document.getElementById('k-msg').textContent='원하는 버거를 선택하세요';document.getElementById('k-log').textContent='STAGE 1 대기 중...';if(!keepEnd)document.getElementById('k-end').classList.remove('show')}
 
 /* ========== A. 교통카드 정상 동작 ========== */
 let tBal=3500;const TFARE=1350;
@@ -505,11 +594,44 @@ function tLog(m){const l=document.getElementById('t-log');l.textContent=m+'\n'+l
 function tUpd(){document.getElementById('t-bal').textContent=tBal.toLocaleString()+'원'}
 function tTag(){
   tLog('💳 태그 (잔액 '+tBal+'원)');
-  if(tBal>=TFARE){tBal-=TFARE;tUpd();document.getElementById('t-msg').textContent='🎵 띵! 승인 — 잔액 '+tBal+'원';tLog('✅ 승인: '+TFARE+'원 차감, 잔액 '+tBal+'원');}
-  else{document.getElementById('t-msg').textContent='🚨 잔액 부족 ('+(TFARE-tBal)+'원 부족)';tLog('❌ 거부: '+(TFARE-tBal)+'원 부족');}
+  if(tBal>=TFARE){
+    /* 종료 상태 2: 승인 완료 */
+    const before=tBal;
+    tBal-=TFARE;
+    tUpd();
+    document.getElementById('t-msg').textContent='🎵 띵! 승인 완료 — 통과하세요 (잔액 '+tBal+'원)';
+    tLog('✅ [종료] 승인 완료: '+TFARE+'원 차감, 잔액 '+tBal+'원');
+    const el=document.getElementById('t-end');
+    el.className='end-state show success';
+    el.innerHTML='<div class="end-state-label">🟢 END STATE 2 · 승인 완료</div>'
+      +'<div class="end-state-main">🎵 띵! — 통과하세요</div>'
+      +'<div class="end-state-detail">요금이 정상 차감되었습니다. 승인음 출력 및 현재 잔액이 표시됩니다.</div>'
+      +'<div class="receipt">'
+      +'<div class="receipt-row"><span>이전 잔액</span><span>'+before.toLocaleString()+'원</span></div>'
+      +'<div class="receipt-row"><span>기본 요금</span><span>− '+TFARE.toLocaleString()+'원</span></div>'
+      +'<div class="receipt-row total"><span>현재 잔액</span><span>'+tBal.toLocaleString()+'원</span></div>'
+      +'</div>'
+      +'<div style="margin-top:10px;font-size:12px;color:#14532d;font-weight:600">✅ 결제가 완료되었습니다. 안전한 이용 되세요!</div>';
+  }else{
+    /* 종료 상태 1: 승인 거부 */
+    const short=TFARE-tBal;
+    document.getElementById('t-msg').textContent='🚨 승인 거부 — 잔액 '+short+'원 부족';
+    tLog('❌ [종료] 승인 거부: '+short+'원 부족');
+    const el=document.getElementById('t-end');
+    el.className='end-state show reject';
+    el.innerHTML='<div class="end-state-label">🔴 END STATE 1 · 승인 거부</div>'
+      +'<div class="end-state-main">🚨 삐− 삐− · 잔액 부족 안내</div>'
+      +'<div class="end-state-detail">현재 잔액이 기본 요금보다 적어 결제가 거부되었습니다. 오류음이 출력됩니다.</div>'
+      +'<div class="receipt">'
+      +'<div class="receipt-row"><span>현재 잔액</span><span>'+tBal.toLocaleString()+'원</span></div>'
+      +'<div class="receipt-row"><span>필요 금액</span><span>'+TFARE.toLocaleString()+'원</span></div>'
+      +'<div class="receipt-row total"><span>부족 금액</span><span>'+short.toLocaleString()+'원</span></div>'
+      +'</div>'
+      +'<div style="margin-top:10px;font-size:12px;color:#7f1d1d;font-weight:600">⚠️ 결제가 불가합니다. 충전 후 다시 시도해 주세요.</div>';
+  }
 }
-function tCharge(n){tBal+=n;tUpd();document.getElementById('t-msg').textContent=n.toLocaleString()+'원 충전 완료';tLog('💰 충전: +'+n+'원 (잔액 '+tBal+'원)')}
-function tReset(){tBal=3500;tUpd();document.getElementById('t-msg').textContent='초기화됨';document.getElementById('t-log').textContent='단말기 대기 중...'}
+function tCharge(n){tBal+=n;tUpd();document.getElementById('t-msg').textContent=n.toLocaleString()+'원 충전 완료';tLog('💰 충전: +'+n+'원 (잔액 '+tBal+'원)');document.getElementById('t-end').classList.remove('show')}
+function tReset(){tBal=3500;tUpd();document.getElementById('t-msg').textContent='초기화됨';document.getElementById('t-log').textContent='단말기 대기 중...';document.getElementById('t-end').classList.remove('show')}
 
 /* ========== B. 순서도 퍼즐 엔진 ========== */
 const PUZZLES={
@@ -799,32 +921,56 @@ function renderDebugResult(k,s,normal){
   html+='<div class="diff-section">';
   html+='<div class="diff-title">📊 정상 동작과 비교</div>';
   
-  let match=true;
+  let match=true,normalEnd='',userEnd='';
   if(k==='v'){
-    html+='<div class="diff-row"><div class="diff-label">정상:</div><div class="diff-normal">'+(normal.result==='제공'?(normal.drink+' 제공, 거스름돈 '+normal.change+'원'):('거부: '+normal.reason+' ('+normal.shortage+'원)'))+'</div></div>';
-    let my='';
-    if(s.delivered)my='음료 제공'+(s.selected?(': '+s.selected):'')+(s.change!==undefined?(', 거스름돈 '+s.change+'원'):'');
-    else if(s.warned)my='금액 부족 안내';
-    else my='결과 없음 (필수 단계 누락)';
-    html+='<div class="diff-row"><div class="diff-label">내 것:</div><div class="diff-user">'+my+'</div></div>';
+    /* 자판기 — 3가지 종료 상태 */
+    if(normal.result==='제공'&&normal.change>0)normalEnd='🟢 END STATE 3 · 음료 + 거스름돈 반환 완료 · '+normal.drink+' 제공, 거스름돈 '+normal.change+'원';
+    else if(normal.result==='제공')normalEnd='🟡 END STATE 2 · 음료 제공 완료 (거스름돈 없음) · '+normal.drink+' 제공';
+    else normalEnd='🔴 END STATE 1 · 잔액 부족 안내 · '+normal.shortage+'원 부족';
+    
+    if(s.delivered&&s.change>0)userEnd='🟢 END STATE 3 · 음료 + 거스름돈 반환 · '+(s.selected||'???')+', 거스름돈 '+s.change+'원';
+    else if(s.delivered&&s.change===0)userEnd='🟡 END STATE 2 · 음료 제공 완료 · '+(s.selected||'???');
+    else if(s.delivered)userEnd='⚠️ 음료 제공 (거스름돈 처리 불명) · '+(s.selected||'???');
+    else if(s.warned)userEnd='🔴 END STATE 1 · 잔액 부족 안내';
+    else userEnd='❓ 결과 없음 (필수 단계 누락)';
+    
     match=(normal.result==='제공'&&s.delivered&&!s.warned&&s.change===normal.change)||(normal.result==='거부'&&!s.delivered&&s.warned);
   }else if(k==='k'){
-    html+='<div class="diff-row"><div class="diff-label">정상:</div><div class="diff-normal">'+normal.menu+' 결제 '+normal.total+'원 ('+(normal.isSet?'세트':'단품')+')</div></div>';
-    let my='';
-    if(s.paid!==null)my=(s.menu||'???')+' 결제 '+s.total+'원';
-    else my='결제 안 됨';
-    html+='<div class="diff-row"><div class="diff-label">내 것:</div><div class="diff-user">'+my+'</div></div>';
+    /* 키오스크 — 2가지 종료 상태 + 번호표 */
+    if(normal.isSet)normalEnd='🟢 END STATE 2 · 세트 결제 완료 · '+normal.menu+' 세트 / 총 '+normal.total.toLocaleString()+'원 · 번호표 발급';
+    else normalEnd='🟡 END STATE 1 · 단품 결제 완료 · '+normal.menu+' 단품 / 총 '+normal.total.toLocaleString()+'원 · 번호표 발급';
+    
+    if(s.paid!==null&&s.menu){
+      const issued='번호표 발급';
+      if(s.total===normal.total){
+        userEnd=(normal.isSet?'🟢 END STATE 2 · 세트 결제 완료':'🟡 END STATE 1 · 단품 결제 완료')+' · '+s.menu+' / 총 '+s.total.toLocaleString()+'원 · '+issued;
+      }else{
+        userEnd='⚠️ 결제됨 (금액 불일치) · '+s.menu+' / '+s.total.toLocaleString()+'원 · 번호표는 발급되나 주문 내용이 잘못됨';
+      }
+    }else if(s.paid!==null){
+      userEnd='🐛 메뉴 없이 결제됨 / '+s.total.toLocaleString()+'원 · 번호표 발급 불가';
+    }else{
+      userEnd='❓ 결제 안 됨 · 번호표 발급 불가';
+    }
     match=(s.paid===normal.total&&s.menu===normal.menu);
   }else{
-    html+='<div class="diff-row"><div class="diff-label">정상:</div><div class="diff-normal">'+(normal.result==='승인'?('승인, 잔액 '+normal.balance+'원'):('거부: '+normal.reason+' ('+normal.shortage+'원)'))+'</div></div>';
-    let my='';
-    if(s.deducted)my='요금 차감됨, 잔액 '+s.balance+'원';
-    else my='차감 안 됨 (정상/거부 여부 불명)';
-    html+='<div class="diff-row"><div class="diff-label">내 것:</div><div class="diff-user">'+my+'</div></div>';
+    /* 교통카드 — 2가지 종료 상태 */
+    if(normal.result==='승인')normalEnd='🟢 END STATE 2 · 승인 완료 · 🎵 띵! / 잔액 '+normal.balance.toLocaleString()+'원';
+    else normalEnd='🔴 END STATE 1 · 승인 거부 · 🚨 오류음 / '+normal.shortage+'원 부족';
+    
+    if(s.deducted){
+      if(s.condition===true)userEnd='🟢 END STATE 2 · 승인 완료 · 잔액 '+s.balance.toLocaleString()+'원';
+      else userEnd='🐛 [심각한 버그] 잔액 부족인데 차감됨 · 잔액 '+s.balance.toLocaleString()+'원';
+    }else{
+      if(s.condition===false)userEnd='🔴 END STATE 1 · 승인 거부 (오류음 · 부족 안내)';
+      else userEnd='❓ 차감 안 됨 · 승인/거부 여부 불명';
+    }
     match=(normal.result==='승인'&&s.deducted&&s.balance===normal.balance)||(normal.result==='거부'&&!s.deducted);
   }
   
-  html+='<div class="diff-match '+(match?'match':'mismatch')+'">'+(match?'✅ 정상 동작과 일치합니다':'❌ 정상 동작과 결과가 다릅니다')+'</div>';
+  html+='<div class="diff-row"><div class="diff-label">정상:</div><div class="diff-normal">'+normalEnd+'</div></div>';
+  html+='<div class="diff-row"><div class="diff-label">내 것:</div><div class="diff-user">'+userEnd+'</div></div>';
+  html+='<div class="diff-match '+(match?'match':'mismatch')+'">'+(match?'✅ 정상 동작과 동일한 END STATE에 도달했습니다':'❌ 정상 동작과 다른 결과 — 순서도를 다시 점검해 보세요')+'</div>';
   html+='</div>';
   
   /* 버그 리스트 */
@@ -833,7 +979,7 @@ function renderDebugResult(k,s,normal){
     for(const b of s.bugs)html+='<div class="bug-item">'+b+'</div>';
     html+='</div>';
   }else if(!match){
-    html+='<div class="bug-list" style="background:#2d2519;border-color:#78350f"><div class="bug-list-title" style="color:#fcd34d">힌트</div><div class="bug-item" style="color:#fef3c7">결과는 다르지만 블록 자체는 유효하게 실행됐습니다. 블록이 누락되었을 수 있어요.</div></div>';
+    html+='<div class="bug-list" style="background:#2d2519;border-color:#78350f"><div class="bug-list-title" style="color:#fcd34d">힌트</div><div class="bug-item" style="color:#fef3c7">블록 자체는 유효하게 실행됐지만 결과가 다릅니다. 필수 블록이 누락되었을 수 있어요.</div></div>';
   }
   
   out.innerHTML=html;
