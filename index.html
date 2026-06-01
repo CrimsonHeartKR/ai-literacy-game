@@ -7,7 +7,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,'Segoe UI',Roboto,'Malgun Gothic',sans-serif;background:#f4f6fb;color:#222;line-height:1.5}
-header{background:linear-gradient(135deg,#3a5bd9,#6b46c1);color:#fff;padding:18px 24px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+header{background:linear-gradient(135deg,#3a5bd9,#6b46c1);color:#fff;padding:18px 24px;box-shadow:0 2px 8px rgba(0,0,0,.08);position:relative}.header-timer-btn{position:absolute;top:50%;right:24px;transform:translateY(-50%);display:inline-flex;align-items:center;gap:8px;background:rgba(245,166,35,0.15);border:1px solid rgba(245,166,35,0.45);color:#f5a623;text-decoration:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;white-space:nowrap;transition:all .2s}.header-timer-btn:hover{background:rgba(245,166,35,0.28);box-shadow:0 4px 14px rgba(245,166,35,0.3)}.header-timer-btn .hbtn-badge{font-size:11px;color:rgba(245,166,35,0.65);margin-left:6px}
 header h1{font-size:20px;font-weight:700}
 header p{font-size:13px;opacity:.9;margin-top:4px}
 .tabs{display:flex;background:#fff;border-bottom:1px solid #e4e7ef;padding:0 24px;gap:4px;overflow-x:auto}
@@ -177,6 +177,7 @@ main{max-width:1600px;margin:0 auto;padding:20px}
 <header>
   <h1>🧠 AI 리터러시 게임 — 역설계 + 디버깅 기반 학습</h1>
   <p>체험하고(A) · 재구성하고(B) · 내가 짠 순서도로 실제 실행해서 차이를 확인한다(C)</p>
+  <a href="timer-game.html" class="header-timer-btn">⏱️ 절대감각 타이머<span class="hbtn-badge">멀티플레이어</span></a>
 </header>
 
 <div class="tabs">
@@ -995,4 +996,4 @@ initPuzzle('v');initPuzzle('k');initPuzzle('t');
 </body>
 </html>
 
-<style>.timer-link-section{background:#1a1a35;border-top:1px solid rgba(255,255,255,0.08);padding:28px 24px;text-align:center;font-family:'Malgun Gothic',sans-serif}.timer-link-section .tl-label{font-size:11px;font-weight:700;color:#8888aa;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}.timer-link-btn{display:inline-flex;align-items:center;gap:10px;background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.35);color:#f5a623;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:700;font-size:15px;transition:all .2s}.timer-link-btn:hover{background:rgba(245,166,35,0.22);transform:translateY(-2px);box-shadow:0 8px 24px rgba(245,166,35,0.25)}.timer-link-badge{font-size:11px;color:rgba(245,166,35,0.6);margin-left:6px}</style><div class="timer-link-section"><div class="tl-label">🎮 추가 게임 모듈</div>div><a href="timer-game.html" class="timer-link-btn">⏱️ 절대감각 타이머 게임 →<span class="timer-link-badge">멀티플레이어 · 2~10명</span>span></a>a></div>div></style>
+div><a href="timer-game.html" class="timer-link-btn">⏱️ 절대감각 타이머 게임 →<span class="timer-link-badge">멀티플레이어 · 2~10명</span>span></a>a></div>div></style>
