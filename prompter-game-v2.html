@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>프롬프터 학습 게임 — 타이머 게임 설계 도전</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:     #0a0a1a; --bg2:#12122a; --bg3:#1a1a35; --bg4:#22223f;
+  --border: rgba(255,255,255,0.08);
+  --gold:   #f5a623; --gold2:rgba(245,166,35,0.15); --gold3:rgba(245,166,35,0.35);
+  --cyan:   #4ecdc4; --cyan2:rgba(78,205,196,0.15);
+  --purple: #a855f7; --purple2:rgba(168,85,247,0.15);
+  --green:  #4caf50; --green2:rgba(76,175,80,0.15);
+  --red:    #e94560; --red2:rgba(233,69,96,0.15);
+  --text:   #e8e8f0; --gray:#8888aa;
+  --mono:   'JetBrains Mono', monospace;
+  --radius: 12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 60% 40% at 15% 10%,rgba(78,205,196,0.04) 0%,transparent 60%),
+             radial-gradient(ellipse 50% 50% at 85% 80%,rgba(245,166,35,0.04) 0%,transparent 60%)}
+
+/* ── 네비 ── */
+.top-nav{background:rgba(10,10,26,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);
+  padding:14px 32px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:200}
+.nav-back{display:flex;align-items:center;gap:8px;color:var(--gray);text-decoration:none;font-size:.85rem;transition:color .2s}
+.nav-back:hover{color:var(--gold)}
+.nav-title{font-size:.9rem;font-weight:700;color:var(--gold)}
+
+/* ── 스테이지 바 ── */
+.stage-bar{display:flex;align-items:center;justify-content:center;gap:0;padding:20px 24px;max-width:700px;margin:0 auto}
+.stage-item{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;position:relative}
+.stage-num{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-weight:900;font-size:.95rem;border:2px solid;transition:all .3s;background:var(--bg2)}
+.stage-label{font-size:.72rem;font-weight:700;text-align:center;line-height:1.3;transition:color .3s}
+.stage-line{flex:1;height:2px;background:var(--border);margin-bottom:22px;transition:background .3s}
+.stage-item.s-active .stage-num{box-shadow:0 0 16px currentColor}
+.stage-item.s-done .stage-num{opacity:.7}
+
+/* ── 컨테이너 ── */
+.container{max-width:960px;margin:0 auto;padding:0 20px 80px}
+.screen{display:none}.screen.active{display:block}
+
+/* ── 게임카드 ── */
+.game-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px}
+.card-header{background:var(--bg3);border-bottom:1px solid var(--border);padding:14px 22px;display:flex;align-items:center;gap:10px}
+.card-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.card-label{font-size:.8rem;font-weight:700;letter-spacing:.06em}
+.card-body{padding:22px}
+
+/* ════════════════════════════
+   STAGE 1 — 체험 + 초성퀴즈
+════════════════════════════ */
+.stage1-layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+@media(max-width:720px){.stage1-layout{grid-template-columns:1fr}}
+
+/* 게임 패널 */
+.game-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.game-panel-head{background:var(--bg3);border-bottom:1px solid var(--border);padding:12px 18px;
+  display:flex;align-items:center;gap:8px}
+.game-panel-head span{font-size:.82rem;font-weight:700;color:var(--cyan)}
+.game-frame-wrap{position:relative;padding-bottom:75%;background:var(--bg)}
+.game-frame-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
+.game-panel-tip{padding:10px 16px;font-size:.78rem;color:var(--gray);border-top:1px solid var(--border);line-height:1.5}
+.game-panel-tip strong{color:var(--gold)}
+
+/* 퀴즈 패널 */
+.quiz-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.quiz-panel-head{background:var(--bg3);border-bottom:1px solid var(--border);padding:12px 18px;
+  display:flex;align-items:center;justify-content:space-between}
+.quiz-panel-head span{font-size:.82rem;font-weight:700;color:var(--gold)}
+.quiz-score-badge{font-family:var(--mono);font-size:.8rem;color:var(--gold);
+  background:var(--gold2);border:1px solid var(--gold3);padding:3px 10px;border-radius:999px}
+
+/* 진행률 */
+.prog-wrap{padding:12px 16px 0}
+.prog-bar{background:var(--bg3);border-radius:999px;height:5px;overflow:hidden;margin-bottom:4px}
+.prog-fill{height:100%;background:var(--gold);border-radius:999px;transition:width .4s}
+.prog-label{font-size:.72rem;color:var(--gray);text-align:right}
+
+/* 문장 카드들 */
+.sentence-list{padding:10px 12px;display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto}
+.sentence-list::-webkit-scrollbar{width:4px}
+.sentence-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.sent-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;transition:border-color .2s}
+.sent-card.cond-card{border-left:3px solid var(--purple)}
+.sent-card.all-done{border-color:rgba(76,175,80,0.4)}
+.sent-num{font-size:.7rem;font-weight:700;color:var(--gray);margin-bottom:6px;letter-spacing:.04em}
+.cond-card .sent-num{color:var(--purple)}
+.sent-text{font-size:.88rem;line-height:1.8;display:flex;flex-wrap:wrap;align-items:center;gap:3px}
+
+/* 빈칸 */
+.blank{display:inline-flex;align-items:center;gap:2px;
+  background:var(--bg4);border:1.5px solid var(--border);
+  border-radius:7px;padding:3px 9px;cursor:pointer;
+  transition:all .2s;min-width:50px;justify-content:center;vertical-align:middle}
+.blank:hover:not(.b-done){border-color:var(--gold);background:var(--gold2)}
+.blank.b-active{border-color:var(--gold);background:var(--gold2);box-shadow:0 0 0 2px var(--gold3)}
+.blank.b-done.b-correct{border-color:var(--green);background:var(--green2);cursor:default}
+.blank.b-done.b-wrong{border-color:var(--red);background:var(--red2)}
+.blank-cs{font-family:var(--mono);font-weight:700;font-size:.82rem;color:var(--gold);letter-spacing:2px}
+.blank-ans{font-weight:700;font-size:.88rem;color:var(--text)}
+.blank-icon{font-size:.8rem}
+
+/* 입력 영역 */
+.input-area{padding:10px 12px 12px;border-top:1px solid var(--border)}
+.input-area.hidden{display:none}
+.input-label{font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.input-cs-display{font-family:var(--mono);font-weight:700;font-size:1rem;
+  color:var(--bg);background:var(--gold);padding:3px 12px;border-radius:6px;letter-spacing:3px}
+.input-row{display:flex;gap:8px}
+.input-field{flex:1;background:var(--bg);border:1.5px solid var(--border);
+  color:var(--text);padding:9px 13px;border-radius:8px;
+  font-size:.95rem;font-family:'Noto Sans KR',sans-serif;outline:none;transition:border-color .2s}
+.input-field:focus{border-color:var(--gold)}
+.btn-submit{background:var(--gold);color:#0a0a1a;border:none;border-radius:8px;
+  padding:9px 18px;font-size:.88rem;font-weight:700;cursor:pointer;white-space:nowrap;
+  font-family:'Noto Sans KR',sans-serif;transition:all .2s}
+.btn-submit:hover{transform:translateY(-1px);box-shadow:0 4px 14px var(--gold3)}
+
+.stage1-actions{display:flex;justify-content:center;padding:0 0 8px;gap:12px}
+
+/* ════════════════════════════
+   STAGE 2 — 순서도 퍼즐
+════════════════════════════ */
+.puzzle-desc{font-size:.88rem;color:var(--gray);line-height:1.7;margin-bottom:18px;padding:12px 16px;
+  background:var(--bg3);border-radius:8px;border-left:3px solid var(--cyan)}
+.puzzle-layout{display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start}
+@media(max-width:720px){.puzzle-layout{grid-template-columns:1fr}}
+
+/* 드롭존 */
+.dropzone-list{display:flex;flex-direction:column;gap:10px}
+.dropzone{background:var(--bg3);border:2px dashed var(--border);border-radius:10px;
+  min-height:62px;display:flex;align-items:center;padding:6px 10px;gap:10px;
+  transition:all .2s;position:relative}
+.dropzone.dz-over{border-color:var(--gold);background:var(--gold2)}
+.dropzone.dz-filled{border-style:solid}
+.dropzone.dz-correct{border-color:var(--green);background:var(--green2)}
+.dropzone.dz-wrong{border-color:var(--red);background:var(--red2)}
+.dz-num{font-family:var(--mono);font-weight:700;font-size:1rem;color:var(--gold);
+  min-width:32px;height:32px;background:var(--gold2);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dz-empty-hint{color:var(--gray);font-size:.82rem;font-style:italic}
+.dz-result-icon{position:absolute;right:12px;font-size:1.1rem}
+
+/* 카드 뱅크 */
+.card-bank{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.bank-head{background:var(--bg3);border-bottom:1px solid var(--border);padding:10px 14px;
+  font-size:.78rem;font-weight:700;color:var(--gray);letter-spacing:.06em}
+.bank-body{padding:10px;display:flex;flex-direction:column;gap:8px}
+
+/* 드래그 카드 */
+.drag-card{background:var(--bg3);border:1.5px solid var(--border);border-radius:9px;
+  padding:10px 13px;cursor:grab;transition:all .2s;user-select:none;font-size:.84rem;line-height:1.5}
+.drag-card:active{cursor:grabbing}
+.drag-card.dragging{opacity:.35;border-style:dashed}
+.drag-card.placed{opacity:.25;pointer-events:none;text-decoration:line-through;color:var(--gray)}
+.drag-card .dc-keyword{color:var(--gold);font-weight:700}
+
+/* 조건 패널 */
+.cond-panel{background:var(--purple2);border:1px solid rgba(168,85,247,0.3);border-radius:var(--radius);overflow:hidden}
+.cond-head{background:rgba(168,85,247,0.15);border-bottom:1px solid rgba(168,85,247,0.2);
+  padding:10px 14px;font-size:.78rem;font-weight:700;color:var(--purple)}
+.cond-body{padding:10px;display:flex;flex-direction:column;gap:8px}
+.cond-item{background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);
+  border-radius:8px;padding:9px 12px;font-size:.82rem;color:var(--text);line-height:1.5}
+.cond-item .dc-keyword{color:var(--purple);font-weight:700}
+
+.puzzle-actions{display:flex;gap:12px;justify-content:center;padding-top:4px;flex-wrap:wrap}
+
+/* ════════════════════════════
+   STAGE 3 — 결과
+════════════════════════════ */
+.result-wrap{padding:32px 24px;text-align:center}
+.result-trophy{font-size:4rem;margin-bottom:14px;animation:bob 1.2s ease infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.result-title{font-size:1.8rem;font-weight:900;margin-bottom:6px}
+.result-sub{color:var(--gray);font-size:.92rem;margin-bottom:26px;line-height:1.6}
+.score-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;max-width:500px;margin:0 auto 28px}
+@media(max-width:480px){.score-grid{grid-template-columns:1fr 1fr}}
+.score-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px 12px;
+  display:flex;flex-direction:column;align-items:center;gap:5px}
+.score-val{font-family:var(--mono);font-size:1.9rem;font-weight:700;color:var(--gold)}
+.score-lbl{font-size:.72rem;color:var(--gray)}
+
+.review-section{text-align:left;max-width:720px;margin:0 auto 24px}
+.review-title{font-size:.8rem;font-weight:700;color:var(--gray);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
+.review-item{display:flex;gap:10px;padding:10px 14px;border-radius:8px;
+  background:var(--bg3);border:1px solid var(--border);margin-bottom:7px;font-size:.86rem;line-height:1.6}
+.review-n{font-family:var(--mono);color:var(--gold);font-weight:700;min-width:22px}
+.review-hl{color:var(--gold);font-weight:700}
+.review-cond{border-color:rgba(168,85,247,0.3)}
+.review-cond .review-n{color:var(--purple)}
+
+/* ── 공통 버튼 ── */
+.btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:8px;cursor:pointer;
+  font-size:.9rem;font-weight:700;padding:11px 22px;font-family:'Noto Sans KR',sans-serif;transition:all .2s}
+.btn-primary{background:var(--gold);color:#0a0a1a}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 22px var(--gold3)}
+.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--gold);color:var(--gold)}
+.btn-cyan{background:var(--cyan);color:#0a0a1a}
+.btn-cyan:hover{transform:translateY(-2px);box-shadow:0 8px 22px var(--cyan2)}
+
+/* ── 토스트 ── */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  padding:11px 22px;border-radius:10px;font-size:.88rem;font-weight:500;
+  z-index:999;transition:transform .3s;pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.t-ok{border-color:var(--green);color:var(--green)}
+.toast.t-err{border-color:var(--red);color:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- 네비 -->
+<nav class="top-nav">
+  <a href="index.html" class="nav-back">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg>
+    메인으로
+  </a>
+  <span style="color:var(--border)">·</span>
+  <span class="nav-title">🧩 프롬프터 학습 게임</span>
+</nav>
+
+<!-- 스테이지 바 -->
+<div class="stage-bar" id="stageBar">
+  <div class="stage-item s-active" id="si1">
+    <div class="stage-num" style="color:var(--cyan);border-color:var(--cyan)">1</div>
+    <div class="stage-label" style="color:var(--cyan)">게임 체험<br/>+ 초성퀴즈</div>
+  </div>
+  <div class="stage-line" id="sl1"></div>
+  <div class="stage-item" id="si2">
+    <div class="stage-num" style="color:var(--gold);border-color:var(--gray)">2</div>
+    <div class="stage-label" style="color:var(--gray)">순서도<br/>퍼즐</div>
+  </div>
+  <div class="stage-line" id="sl2"></div>
+  <div class="stage-item" id="si3">
+    <div class="stage-num" style="color:var(--purple);border-color:var(--gray)">🏆</div>
+    <div class="stage-label" style="color:var(--gray)">결과<br/>확인</div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ═══════════════════════════════════════
+     STAGE 1 : 게임 체험 + 초성퀴즈
+═══════════════════════════════════════ -->
+<div id="scr1" class="screen active">
+  <div class="stage1-layout">
+
+    <!-- 좌: 타이머 게임 iframe -->
+    <div class="game-panel">
+      <div class="game-panel-head">
+        <div class="card-dot" style="background:var(--cyan)"></div>
+        <span>🎮 절대감각 타이머 게임 — 직접 플레이!</span>
+      </div>
+      <div class="game-frame-wrap">
+        <iframe src="https://ai-literacy-game-pied.vercel.app/timer-game.html" title="절대감각 타이머 게임" allowfullscreen></iframe>
+      </div>
+      <div class="game-panel-tip">
+        💡 게임을 플레이하면서 오른쪽 <strong>빈칸(초성)</strong>을 채워보세요!<br/>
+        게임 화면에서 단어를 직접 눈으로 확인할 수 있어요.
+      </div>
+    </div>
+
+    <!-- 우: 초성퀴즈 패널 -->
+    <div class="quiz-panel">
+      <div class="quiz-panel-head">
+        <span>📝 초성 퀴즈</span>
+        <div class="quiz-score-badge" id="scoreDisplay">0 / 11</div>
+      </div>
+
+      <div class="prog-wrap">
+        <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+        <div class="prog-label" id="progLabel">0 / 11 완료</div>
+      </div>
+
+      <div class="sentence-list" id="sentenceList"></div>
+
+      <!-- 입력 영역 -->
+      <div class="input-area hidden" id="inputArea">
+        <div class="input-label">
+          정답 입력 →
+          <span class="input-cs-display" id="inputCS"></span>
+        </div>
+        <div class="input-row">
+          <input type="text" class="input-field" id="inputField"
+            placeholder="단어를 입력하세요..." autocomplete="off" spellcheck="false"/>
+          <button class="btn-submit" onclick="submitAnswer()">확인 ↵</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="stage1-actions" style="margin-top:16px">
+    <button class="btn btn-secondary" onclick="resetQuiz()">↺ 퀴즈 초기화</button>
+    <button class="btn btn-primary" id="toStage2Btn" onclick="goStage2()" disabled>
+      순서도 퍼즐 풀기 →
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     STAGE 2 : 순서도 퍼즐
+═══════════════════════════════════════ -->
+<div id="scr2" class="screen">
+  <div class="game-card">
+    <div class="card-header">
+      <div class="card-dot" style="background:var(--gold);box-shadow:0 0 8px var(--gold)"></div>
+      <span class="card-label" style="color:var(--gold)">STAGE 2 — 순서도 퍼즐</span>
+    </div>
+    <div class="card-body">
+      <div class="puzzle-desc">
+        오른쪽 <strong style="color:var(--gold)">카드 뱅크</strong>에서 카드를 드래그해서
+        왼쪽 <strong style="color:var(--cyan)">순서 칸</strong>에 올바른 순서로 배치해주세요.<br/>
+        💜 보라색 조건 카드는 순서와 무관한 설정 문장으로, 이미 배치되어 있습니다.
+      </div>
+
+      <div class="puzzle-layout">
+        <!-- 좌: 드롭존 -->
+        <div>
+          <div style="font-size:.75rem;font-weight:700;color:var(--cyan);letter-spacing:.08em;margin-bottom:10px">
+            📋 절차 순서 (1~8번)
+          </div>
+          <div class="dropzone-list" id="dropzoneList"></div>
+
+          <div style="margin-top:16px">
+            <div style="font-size:.75rem;font-weight:700;color:var(--purple);letter-spacing:.08em;margin-bottom:10px">
+              💜 조건 문장 (순서 무관)
+            </div>
+            <div class="cond-panel">
+              <div class="cond-head">CONDITION — 설정 조건</div>
+              <div class="cond-body" id="condList"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 우: 카드 뱅크 + 조건 -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="card-bank">
+            <div class="bank-head">🃏 카드 뱅크 — 드래그하세요</div>
+            <div class="bank-body" id="cardBank"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="puzzle-actions" style="margin-top:18px">
+        <button class="btn btn-secondary" onclick="resetPuzzle()">↺ 퍼즐 초기화</button>
+        <button class="btn btn-secondary" onclick="goStage1()">← 퀴즈로 돌아가기</button>
+        <button class="btn btn-primary" onclick="checkPuzzle()">✓ 순서 확인하기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     STAGE 3 : 결과
+═══════════════════════════════════════ -->
+<div id="scr3" class="screen">
+  <div class="game-card">
+    <div class="card-header">
+      <div class="card-dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple)"></div>
+      <span class="card-label" style="color:var(--purple)">RESULT — 학습 완료!</span>
+    </div>
+    <div class="result-wrap">
+      <div class="result-trophy" id="rTrophy">🏆</div>
+      <div class="result-title" id="rTitle"></div>
+      <div class="result-sub" id="rSub"></div>
+      <div class="score-grid">
+        <div class="score-box">
+          <div class="score-val" id="rQ">—</div>
+          <div class="score-lbl">초성퀴즈</div>
+        </div>
+        <div class="score-box">
+          <div class="score-val" id="rP">—</div>
+          <div class="score-lbl">순서도 퍼즐</div>
+        </div>
+        <div class="score-box" style="border-color:var(--gold3)">
+          <div class="score-val" id="rT" style="font-size:2.2rem">—</div>
+          <div class="score-lbl">🌟 총점</div>
+        </div>
+      </div>
+      <div class="review-section">
+        <div class="review-title">📋 정답 프롬프터 전체</div>
+        <div id="reviewList"></div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-secondary" onclick="restartAll()">↺ 처음부터</button>
+        <button class="btn btn-cyan" onclick="goGame()">🎮 타이머 게임 하러 가기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /container -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+// 데이터
+// ══════════════════════════════════════════
+const SENTENCES = [
+  {
+    id:0, order:1, fixed:false,
+    parts:[
+      {t:"마음속으로 "},
+      {t:"시간",cs:"ㅅㄱ",key:"시간",blank:true,idx:0},
+      {t:"을 세어서, 정해진 "},
+      {t:"시간",cs:"ㅅㄱ",key:"시간",blank:true,idx:1},
+      {t:"에 가장 가깝게 멈추는 사람이 이기는 게임을 만든다"}
+    ]
+  },
+  {
+    id:1, order:2, fixed:false,
+    parts:[
+      {t:"하나의 HTML 파일로 만들어서, 웹브라우저에서 바로 실행할 수 있도록 "},
+      {t:"설계",cs:"ㅅㄱ",key:"설계",blank:true,idx:0},
+      {t:"한다"}
+    ]
+  },
+  {
+    id:2, order:3, fixed:false,
+    parts:[
+      {t:"게임을 시작하기 전, "},
+      {t:"참여인원",cs:"ㅊㅇㅇㅇ",key:"참여인원",blank:true,idx:0},
+      {t:"(2명~10명)을 먼저 설정한다"}
+    ]
+  },
+  {
+    id:3, order:4, fixed:false,
+    parts:[
+      {t:"목표 시간이 공개되기 전에, 3-2-1 "},
+      {t:"카운트다운",cs:"ㅋㅇㅌㄷㅇ",key:"카운트다운",blank:true,idx:0},
+      {t:" 화면을 보여준다"}
+    ]
+  },
+  {
+    id:4, order:5, fixed:false,
+    parts:[
+      {t:"카운트다운이 끝나면, 목표 시간을 화면에 크게 표시하고 "},
+      {t:"랜덤",cs:"ㄹㄷ",key:"랜덤",blank:true,idx:0},
+      {t:" 비프음을 재생한다"}
+    ]
+  },
+  {
+    id:5, order:6, fixed:false,
+    parts:[
+      {t:"플레이어가 "},
+      {t:"스페이스바",cs:"ㅅㅍㅇㅅㅂ",key:"스페이스바",blank:true,idx:0},
+      {t:"를 누르면 타이머가 멈추고, 목표 시간과의 "},
+      {t:"오차",cs:"ㅇㅊ",key:"오차",blank:true,idx:1},
+      {t:"가 기록된다"}
+    ]
+  },
+  {
+    id:6, order:7, fixed:false,
+    parts:[
+      {t:"한 명이 끝나면 오차 기록을 "},
+      {t:"리더보드",cs:"ㄹㄷㅂㄷ",key:"리더보드",blank:true,idx:0},
+      {t:"에 저장하고, 다음 플레이어에게 순서를 넘긴다"}
+    ]
+  },
+  {
+    id:7, order:8, fixed:false,
+    parts:[
+      {t:"모든 플레이어가 완료되면, 전체 리더보드를 보여주고 1등을 축하하며 마무리한다"}
+    ]
+  },
+  // 조건 문장
+  {
+    id:8, order:null, fixed:true,
+    parts:[
+      {t:"목표 시간은 5초~10초 사이에서 랜덤으로 결정된다"}
+    ]
+  },
+  {
+    id:9, order:null, fixed:true,
+    parts:[
+      {t:"오차는 플러스(+), 마이너스(-) 관계없이 "},
+      {t:"절댓값",cs:"ㅈㄷㄱ",key:"절댓값",blank:true,idx:0},
+      {t:"으로 "},
+      {t:"계산",cs:"ㄱㅅ",key:"계산",blank:true,idx:1},
+      {t:"한다"}
+    ]
+  },
+  {
+    id:10, order:null, fixed:true,
+    parts:[
+      {t:"게임 데이터는 브라우저 메모리에만 저장되며, 새 게임이 시작되면 초기화된다"}
+    ]
+  }
+];
+
+// 퀴즈 대상 blank만 추출
+const ALL_BLANKS = [];
+SENTENCES.forEach(s => {
+  s.parts.forEach((p,pi) => {
+    if (p.blank) ALL_BLANKS.push({sid:s.id, partIdx:pi, key:p.key, cs:p.cs});
+  });
+});
+const TOTAL_BLANKS = ALL_BLANKS.length; // 11개
+
+// ── 상태 ──
+let answers = {}; // {sid_partIdx: {done,correct,input}}
+let activeBlank = null; // {sid, partIdx}
+let quizScore = 0;
+let puzzleScore = 0;
+
+// ══════════════════════════════════════════
+// STAGE 1 초기화
+// ══════════════════════════════════════════
+function initQuiz() {
+  answers = {};
+  activeBlank = null;
+  ALL_BLANKS.forEach(b => {
+    answers[`${b.sid}_${b.partIdx}`] = {done:false, correct:false, input:''};
+  });
+  renderSentences();
+  updateProgress();
+  document.getElementById('inputArea').classList.add('hidden');
+  document.getElementById('toStage2Btn').disabled = true;
+}
+
+function renderSentences() {
+  const list = document.getElementById('sentenceList');
+  list.innerHTML = '';
+
+  SENTENCES.forEach(s => {
+    const card = document.createElement('div');
+    const allDone = s.parts.filter(p=>p.blank).every(p=> answers[`${s.id}_${SENTENCES[s.id].parts.indexOf(p)}`]?.done);
+    card.className = 'sent-card' + (s.fixed?' cond-card':'') + (allDone?' all-done':'');
+
+    const numEl = document.createElement('div');
+    numEl.className = 'sent-num';
+    numEl.textContent = s.fixed ? '💜 조건 문장' : `문장 ${s.order}`;
+    card.appendChild(numEl);
+
+    const textEl = document.createElement('div');
+    textEl.className = 'sent-text';
+
+    s.parts.forEach((p, pi) => {
+      if (!p.blank) {
+        const sp = document.createElement('span');
+        sp.textContent = p.t;
+        textEl.appendChild(sp);
+      } else {
+        const key = `${s.id}_${pi}`;
+        const ans = answers[key];
+        const blank = document.createElement('span');
+        const isActive = activeBlank && activeBlank.sid===s.id && activeBlank.partIdx===pi;
+
+        blank.className = 'blank' +
+          (isActive ? ' b-active' : '') +
+          (ans.done ? ' b-done ' + (ans.correct ? 'b-correct':'b-wrong') : '');
+
+        if (!ans.done) {
+          blank.innerHTML = `<span class="blank-cs">${p.cs}</span>`;
+          blank.onclick = () => activateBlank(s.id, pi, p.cs, p.key);
+        } else {
+          blank.innerHTML = `<span class="blank-ans">${ans.input}</span><span class="blank-icon">${ans.correct?'✅':'❌'}</span>`;
+          blank.onclick = null;
+        }
+        textEl.appendChild(blank);
+      }
+    });
+
+    card.appendChild(textEl);
+    list.appendChild(card);
+  });
+}
+
+function activateBlank(sid, partIdx, cs, key) {
+  const k = `${sid}_${partIdx}`;
+  if (answers[k]?.done) return;
+  activeBlank = {sid, partIdx, cs, key};
+  document.getElementById('inputCS').textContent = cs;
+  document.getElementById('inputArea').classList.remove('hidden');
+  const f = document.getElementById('inputField');
+  f.value = '';
+  f.focus();
+  renderSentences();
+}
+
+function submitAnswer() {
+  if (!activeBlank) return;
+  const f = document.getElementById('inputField');
+  const input = f.value.trim();
+  if (!input) { showToast('단어를 입력해주세요!','err'); return; }
+
+  const k = `${activeBlank.sid}_${activeBlank.partIdx}`;
+  const correct = input === activeBlank.key;
+  answers[k] = {done:true, correct, input};
+
+  showToast(correct ? `🎉 정답! "${activeBlank.key}"` : `❌ 오답. 정답은 "${activeBlank.key}"`, correct?'ok':'err');
+
+  activeBlank = null;
+  document.getElementById('inputArea').classList.add('hidden');
+  f.value = '';
+
+  renderSentences();
+  updateProgress();
+}
+
+function updateProgress() {
+  const done = Object.values(answers).filter(a=>a.done).length;
+  const pct = Math.round(done/TOTAL_BLANKS*100);
+  document.getElementById('progFill').style.width = pct+'%';
+  document.getElementById('progLabel').textContent = `${done} / ${TOTAL_BLANKS} 완료`;
+  document.getElementById('scoreDisplay').textContent = `${done} / ${TOTAL_BLANKS}`;
+
+  if (done === TOTAL_BLANKS) {
+    document.getElementById('toStage2Btn').disabled = false;
+    showToast('🎉 모든 초성퀴즈 완료! 순서도 퍼즐로 이동하세요!','ok');
+  }
+}
+
+function resetQuiz() {
+  initQuiz();
+}
+
+// Enter 키
+document.addEventListener('keydown', e => {
+  if (e.key==='Enter' && document.getElementById('scr1').classList.contains('active')) {
+    submitAnswer();
+  }
+});
+
+// ══════════════════════════════════════════
+// STAGE 2 — 순서도 퍼즐
+// ══════════════════════════════════════════
+const ORDERED = SENTENCES.filter(s=>!s.fixed).sort((a,b)=>a.order-b.order);
+const FIXED   = SENTENCES.filter(s=>s.fixed);
+
+let dzData = {}; // {dzIdx: sentenceId or null}
+let dragId  = null;
+
+function initPuzzle() {
+  dzData = {};
+  for(let i=0;i<ORDERED.length;i++) dzData[i]=null;
+  renderPuzzle();
+}
+
+function renderPuzzle() {
+  // 드롭존
+  const dzList = document.getElementById('dropzoneList');
+  dzList.innerHTML = '';
+  for(let i=0;i<ORDERED.length;i++){
+    const dz = document.createElement('div');
+    const sid = dzData[i];
+    const s = sid!==null ? SENTENCES.find(x=>x.id===sid) : null;
+    dz.className = 'dropzone' + (s?' dz-filled':'');
+    dz.dataset.dz = i;
+    dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('dz-over')});
+    dz.addEventListener('dragleave', ()=>dz.classList.remove('dz-over'));
+    dz.addEventListener('drop', e=>{e.preventDefault();dz.classList.remove('dz-over');dropCard(i)});
+
+    const num = document.createElement('div');
+    num.className = 'dz-num'; num.textContent = i+1;
+    dz.appendChild(num);
+
+    if(s){
+      const txt = document.createElement('div');
+      txt.style.cssText = 'font-size:.84rem;line-height:1.5;flex:1';
+      txt.innerHTML = renderSentText(s);
+      dz.appendChild(txt);
+      // 제거 버튼
+      const rm = document.createElement('span');
+      rm.textContent='✕';rm.style.cssText='cursor:pointer;color:var(--gray);font-size:.9rem;padding:0 4px;flex-shrink:0';
+      rm.onclick=()=>removeFromDz(i);
+      dz.appendChild(rm);
+    } else {
+      const hint=document.createElement('div');
+      hint.className='dz-empty-hint';hint.textContent='여기에 카드를 드래그하세요';
+      dz.appendChild(hint);
+    }
+    dzList.appendChild(dz);
+  }
+
+  // 카드 뱅크
+  const bank = document.getElementById('cardBank');
+  bank.innerHTML='';
+  const placedIds = Object.values(dzData).filter(v=>v!==null);
+  const shuffled = [...ORDERED].sort(()=>Math.random()-.5);
+  shuffled.forEach(s=>{
+    const card=document.createElement('div');
+    const placed=placedIds.includes(s.id);
+    card.className='drag-card'+(placed?' placed':'');
+    card.draggable=!placed;
+    card.dataset.sid=s.id;
+    card.innerHTML=renderSentText(s);
+    if(!placed){
+      card.addEventListener('dragstart',()=>{dragId=s.id;card.classList.add('dragging')});
+      card.addEventListener('dragend',()=>{dragId=null;card.classList.remove('dragging')});
+    }
+    bank.appendChild(card);
+  });
+
+  // 조건 패널
+  const condList=document.getElementById('condList');
+  condList.innerHTML='';
+  FIXED.forEach(s=>{
+    const item=document.createElement('div');
+    item.className='cond-item';
+    item.innerHTML=renderSentText(s);
+    condList.appendChild(item);
+  });
+}
+
+function renderSentText(s) {
+  return s.parts.map(p => {
+    if(!p.blank) return `<span>${p.t}</span>`;
+    const k=`${s.id}_${SENTENCES[s.id].parts.indexOf(p)}`;
+    const ans=answers[k];
+    const word=ans?.correct?`<span class="dc-keyword">${p.key}</span>`:`<span class="dc-keyword">${p.cs}</span>`;
+    return word;
+  }).join('');
+}
+
+function dropCard(dzIdx) {
+  if(dragId===null) return;
+  // 이미 다른 곳에 배치된 경우 제거
+  Object.keys(dzData).forEach(k=>{ if(dzData[k]===dragId) dzData[k]=null; });
+  dzData[dzIdx]=dragId;
+  dragId=null;
+  renderPuzzle();
+}
+
+function removeFromDz(dzIdx) {
+  dzData[dzIdx]=null;
+  renderPuzzle();
+}
+
+function resetPuzzle() {
+  initPuzzle();
+}
+
+function checkPuzzle() {
+  // 전체 채워졌는지 확인
+  const empty = Object.values(dzData).filter(v=>v===null).length;
+  if(empty>0){ showToast(`아직 ${empty}칸이 비어있어요!`,'err'); return; }
+
+  const dzList=document.getElementById('dropzoneList');
+  const zones=[...dzList.querySelectorAll('.dropzone')];
+  let correct=0;
+
+  Object.keys(dzData).forEach((dzIdx,i)=>{
+    const sid=dzData[dzIdx];
+    const s=SENTENCES.find(x=>x.id===sid);
+    const isCorrect=s.order===parseInt(dzIdx)+1;
+    if(isCorrect) correct++;
+    const dz=zones[parseInt(dzIdx)];
+    dz.classList.remove('dz-correct','dz-wrong');
+    dz.classList.add(isCorrect?'dz-correct':'dz-wrong');
+    let icon=dz.querySelector('.dz-result-icon');
+    if(!icon){icon=document.createElement('div');icon.className='dz-result-icon';dz.appendChild(icon);}
+    icon.textContent=isCorrect?'✅':'❌';
+  });
+
+  puzzleScore=Math.round(correct/ORDERED.length*100);
+  showToast(`${ORDERED.length}문장 중 ${correct}개 정답! (${puzzleScore}점)`, correct===ORDERED.length?'ok':'err');
+
+  if(correct===ORDERED.length){
+    setTimeout(()=>goResult(),1800);
+  } else {
+    setTimeout(()=>{ if(confirm(`${correct}개 정답이에요. 결과 화면으로 넘어갈까요?`)) goResult(); }, 800);
+  }
+}
+
+// ══════════════════════════════════════════
+// 결과
+// ══════════════════════════════════════════
+function goResult(){
+  // 퀴즈 점수
+  const correct=Object.values(answers).filter(a=>a.correct).length;
+  quizScore=Math.round(correct/TOTAL_BLANKS*100);
+  const total=Math.round((quizScore+puzzleScore)/2);
+
+  let trophy='🏆',title='',sub='';
+  if(total>=90){trophy='🥇';title='프롬프터 마스터!';sub='완벽합니다! 타이머 게임의 설계 원리를 완전히 이해했어요!';}
+  else if(total>=70){trophy='🥈';title='훌륭한 설계자!';sub='대부분의 프롬프터를 이해했어요. 조금만 더 연습해봐요!';}
+  else if(total>=50){trophy='🥉';title='도전 중인 학습자!';sub='좋은 시작이에요. 다시 한 번 도전해볼까요?';}
+  else{trophy='📚';title='다시 도전!';sub='프롬프터를 다시 읽고 도전해봐요!';}
+
+  document.getElementById('rTrophy').textContent=trophy;
+  document.getElementById('rTitle').textContent=title;
+  document.getElementById('rSub').textContent=sub;
+  document.getElementById('rQ').textContent=quizScore+'점';
+  document.getElementById('rP').textContent=puzzleScore+'점';
+  document.getElementById('rT').textContent=total+'점';
+
+  const rev=document.getElementById('reviewList');
+  rev.innerHTML='';
+  ORDERED.forEach((s,i)=>{
+    const div=document.createElement('div');
+    div.className='review-item';
+    div.innerHTML=`<div class="review-n">${i+1}</div><div>${renderReviewText(s)}</div>`;
+    rev.appendChild(div);
+  });
+  FIXED.forEach(s=>{
+    const div=document.createElement('div');
+    div.className='review-item review-cond';
+    div.innerHTML=`<div class="review-n">💜</div><div>${renderReviewText(s)}</div>`;
+    rev.appendChild(div);
+  });
+
+  showScreen(3);
+}
+
+function renderReviewText(s){
+  return s.parts.map(p=>{
+    if(!p.blank) return p.t;
+    return `<span class="review-hl">${p.key}</span>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// 화면 전환
+// ══════════════════════════════════════════
+function showScreen(n){
+  ['scr1','scr2','scr3'].forEach((id,i)=>{
+    document.getElementById(id).classList.toggle('active',i+1===n);
+  });
+  // 스테이지 인디케이터
+  ['si1','si2','si3'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.classList.remove('s-active','s-done');
+    if(i+1<n) el.classList.add('s-done');
+    if(i+1===n) el.classList.add('s-active');
+  });
+  ['sl1','sl2'].forEach((id,i)=>{
+    document.getElementById(id).style.background=i+1<n?'var(--gold)':'var(--border)';
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function goStage2(){
+  initPuzzle();
+  showScreen(2);
+}
+
+function goStage1(){
+  showScreen(1);
+}
+
+function restartAll(){
+  initQuiz();
+  showScreen(1);
+}
+
+function goGame(){
+  window.location.href='timer-game.html';
+}
+
+// ══════════════════════════════════════════
+// 토스트
+// ══════════════════════════════════════════
+let toastTm=null;
+function showToast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show'+(type?' t-'+type:'');
+  if(toastTm) clearTimeout(toastTm);
+  toastTm=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ══════════════════════════════════════════
+// 시작
+// ══════════════════════════════════════════
+initQuiz();
+</script>
+</body>
+</html>
