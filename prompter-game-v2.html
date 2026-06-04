@@ -42,7 +42,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;
 .stage-item.s-done .stage-num{opacity:.7}
 
 /* ── 컨테이너 ── */
-.container{max-width:960px;margin:0 auto;padding:0 20px 80px}
+.container{max-width:1280px;margin:0 auto;padding:0 20px 80px}
 .screen{display:none}.screen.active{display:block}
 
 /* ── 게임카드 ── */
@@ -55,16 +55,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;
 /* ════════════════════════════
    STAGE 1 — 체험 + 초성퀴즈
 ════════════════════════════ */
-.stage1-layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
-@media(max-width:720px){.stage1-layout{grid-template-columns:1fr}}
+.stage1-layout{display:flex;flex-direction:column;gap:20px}
+@media(max-width:720px){.stage1-layout{flex-direction:column}.sentence-list{grid-template-columns:1fr}}
 
 /* 게임 패널 */
 .game-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .game-panel-head{background:var(--bg3);border-bottom:1px solid var(--border);padding:12px 18px;
   display:flex;align-items:center;gap:8px}
 .game-panel-head span{font-size:.82rem;font-weight:700;color:var(--cyan)}
-.game-frame-wrap{position:relative;padding-bottom:75%;background:var(--bg)}
-.game-frame-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
+.game-frame-wrap{position:relative;height:620px;background:var(--bg)}
+.game-frame-wrap iframe{width:100%;height:100%;border:none;display:block}
 .game-panel-tip{padding:10px 16px;font-size:.78rem;color:var(--gray);border-top:1px solid var(--border);line-height:1.5}
 .game-panel-tip strong{color:var(--gold)}
 
@@ -83,7 +83,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;
 .prog-label{font-size:.72rem;color:var(--gray);text-align:right}
 
 /* 문장 카드들 */
-.sentence-list{padding:10px 12px;display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto}
+.sentence-list{padding:10px 12px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .sentence-list::-webkit-scrollbar{width:4px}
 .sentence-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
@@ -108,7 +108,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;
 .blank-icon{font-size:.8rem}
 
 /* 입력 영역 */
-.input-area{padding:10px 12px 12px;border-top:1px solid var(--border)}
+.input-area{padding:14px 16px 16px;border-top:2px solid var(--gold3);background:var(--bg2);border-radius:0 0 var(--radius) var(--radius)}
 .input-area.hidden{display:none}
 .input-label{font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:6px;display:flex;align-items:center;gap:8px}
 .input-cs-display{font-family:var(--mono);font-weight:700;font-size:1rem;
