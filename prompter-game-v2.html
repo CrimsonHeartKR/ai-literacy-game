@@ -103,6 +103,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;
 .blank.b-active{border-color:var(--gold);background:var(--gold2);box-shadow:0 0 0 2px var(--gold3)}
 .blank.b-done.b-correct{border-color:var(--green);background:var(--green2);cursor:default}
 .blank.b-done.b-wrong{border-color:var(--red);background:var(--red2)}
+.blank.b-done.b-wrong:hover{border-color:var(--gold);background:var(--gold2);opacity:.9}
 .blank-cs{font-family:var(--mono);font-weight:700;font-size:.82rem;color:var(--gold);letter-spacing:2px}
 .blank-ans{font-weight:700;font-size:.88rem;color:var(--text)}
 .blank-icon{font-size:.8rem}
@@ -564,9 +565,17 @@ function renderSentences() {
         if (!ans.done) {
           blank.innerHTML = `<span class="blank-cs">${p.cs}</span>`;
           blank.onclick = () => activateBlank(s.id, pi, p.cs, p.key);
-        } else {
-          blank.innerHTML = `<span class="blank-ans">${ans.input}</span><span class="blank-icon">${ans.correct?'✅':'❌'}</span>`;
+        } else if (ans.correct) {
+          // 정답 — 수정 불가
+          blank.innerHTML = `<span class="blank-ans">${ans.input}</span><span class="blank-icon">✅</span>`;
           blank.onclick = null;
+          blank.style.cursor = 'default';
+        } else {
+          // 오답 — 클릭하면 재입력 가능
+          blank.innerHTML = `<span class="blank-ans" style="color:var(--red);text-decoration:line-through">${ans.input}</span><span class="blank-icon">❌</span><span style="font-size:.7rem;color:var(--gray);margin-left:4px">재시도↩</span>`;
+          blank.onclick = () => retryBlank(s.id, pi, p.cs, p.key);
+          blank.style.cursor = 'pointer';
+          blank.title = '클릭하면 다시 입력할 수 있어요';
         }
         textEl.appendChild(blank);
       }
@@ -575,6 +584,14 @@ function renderSentences() {
     card.appendChild(textEl);
     list.appendChild(card);
   });
+}
+
+function retryBlank(sid, partIdx, cs, key) {
+  const k = `${sid}_${partIdx}`;
+  // 오답 상태 초기화 → 재입력 모드
+  answers[k] = {done:false, correct:false, input:''};
+  updateProgress();
+  activateBlank(sid, partIdx, cs, key);
 }
 
 function activateBlank(sid, partIdx, cs, key) {
