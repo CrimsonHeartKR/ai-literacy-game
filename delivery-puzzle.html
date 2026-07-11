@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>번쩍배달 시스템 퍼즐 — 5개의 화면, 하나의 시스템</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#141B33;          /* 밤거리 네이비 */
+  --bg2:#1D2647;
+  --panel:#FFF8EC;       /* 크림 카드 */
+  --ink:#22283E;
+  --ink-soft:#5A617C;
+  --mint:#17C3B2;        /* PG / 포인트 */
+  --orange:#FF8A3D;      /* 점포 / 음식 */
+  --yellow:#FFD166;      /* 지식카드 */
+  --blue:#4E8CFF;        /* 사용자 */
+  --purple:#9B6BFF;      /* 서버 */
+  --red:#FF5D73;         /* 라이더 */
+  --good:#2FBF71;
+  --bad:#FF5D73;
+  --radius:16px;
+  --disp:'Jua', 'Apple SD Gothic Neo', sans-serif;
+  --body:'Gowun Dodum','Pretendard','Apple SD Gothic Neo',sans-serif;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(1200px 500px at 80% -10%, #253364 0%, transparent 60%),
+    radial-gradient(900px 400px at 0% 110%, #1c2f52 0%, transparent 55%),
+    var(--bg);
+  color:#F4F1E6;
+  font-family:var(--body);
+  min-height:100vh;
+  line-height:1.5;
+}
+button{font-family:inherit;cursor:pointer;}
+.screen{display:none; max-width:980px; margin:0 auto; padding:20px 14px 90px;}
+.screen.active{display:block;}
+
+/* ───── 시작 화면 ───── */
+.hero{ text-align:center; padding:34px 8px 8px; }
+.hero .badge{
+  display:inline-block; background:rgba(255,209,102,.14); color:var(--yellow);
+  border:1px solid rgba(255,209,102,.45); border-radius:999px;
+  padding:5px 14px; font-size:.85rem; letter-spacing:.06em;
+}
+.hero h1{
+  font-family:var(--disp); font-weight:400;
+  font-size:clamp(1.9rem, 5.4vw, 3rem); margin:16px 0 6px; line-height:1.2;
+}
+.hero h1 .glow{ color:var(--mint); text-shadow:0 0 22px rgba(23,195,178,.55); }
+.hero p.sub{ color:#C6CCE2; max-width:560px; margin:0 auto; font-size:1.02rem;}
+.device-strip{
+  display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin:26px 0 10px;
+}
+.device-chip{
+  background:var(--bg2); border:1.5px solid rgba(255,255,255,.12);
+  border-radius:14px; padding:10px 12px; min-width:96px; text-align:center;
+  animation:floaty 3.2s ease-in-out infinite;
+}
+.device-chip:nth-child(2){animation-delay:.3s}
+.device-chip:nth-child(3){animation-delay:.6s}
+.device-chip:nth-child(4){animation-delay:.9s}
+.device-chip:nth-child(5){animation-delay:1.2s}
+.device-chip .ic{font-size:1.7rem; display:block;}
+.device-chip .nm{font-size:.8rem; color:#C6CCE2; font-family:var(--disp);}
+.device-chip .bar{height:4px; border-radius:4px; margin-top:8px;}
+@keyframes floaty{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+
+.mission{
+  background:var(--bg2); border:1px solid rgba(255,255,255,.1);
+  border-radius:var(--radius); padding:18px 20px; max-width:640px; margin:22px auto 0;
+}
+.mission h2{font-family:var(--disp); font-weight:400; font-size:1.15rem; margin:0 0 8px; color:var(--yellow);}
+.mission ol{margin:0; padding-left:20px; color:#D9DEF0; font-size:.96rem;}
+.mission ol li{margin:5px 0;}
+.mission .note{margin-top:12px; font-size:.85rem; color:#9AA3C4;}
+
+.big-btn{
+  display:block; margin:26px auto 0; border:none;
+  background:linear-gradient(135deg, var(--mint), #0FA396);
+  color:#04302B; font-family:var(--disp); font-size:1.25rem;
+  padding:15px 44px; border-radius:999px;
+  box-shadow:0 6px 0 #0B7E74, 0 14px 30px rgba(23,195,178,.35);
+  transition:transform .12s, box-shadow .12s;
+}
+.big-btn:active{ transform:translateY(4px); box-shadow:0 2px 0 #0B7E74;}
+
+/* ───── 게임 상단바 ───── */
+.topbar{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  margin-bottom:12px;
+}
+.round-pill{
+  background:var(--bg2); border:1px solid rgba(255,255,255,.14);
+  border-radius:12px; padding:8px 14px;
+}
+.round-pill .rd{font-family:var(--disp); font-size:1.02rem; color:#fff;}
+.round-pill .st{font-size:.78rem; color:#9AA3C4;}
+.spacer{flex:1;}
+.counter{
+  font-size:.86rem; color:#C6CCE2; background:var(--bg2);
+  border:1px solid rgba(255,255,255,.14); border-radius:12px; padding:8px 12px;
+}
+.counter b{color:var(--mint);}
+.note-btn{
+  border:1.5px solid rgba(255,209,102,.55); background:rgba(255,209,102,.1);
+  color:var(--yellow); border-radius:12px; padding:8px 12px; font-size:.88rem;
+  font-family:var(--disp); font-weight:400;
+}
+.note-btn .cnt{background:var(--yellow); color:#3A2E00; border-radius:999px; padding:1px 8px; margin-left:4px; font-size:.8rem;}
+
+.round-intro{
+  background:rgba(78,140,255,.1); border:1px dashed rgba(78,140,255,.5);
+  border-radius:12px; padding:10px 14px; font-size:.92rem; color:#D9E4FF; margin-bottom:12px;
+}
+
+/* ───── 보드 (스윔레인) ───── */
+.board-wrap{ overflow-x:auto; border-radius:var(--radius); }
+.board{
+  min-width:660px; background:var(--panel); color:var(--ink);
+  border-radius:var(--radius); padding:12px 10px 18px; position:relative;
+  box-shadow:0 20px 50px rgba(0,0,0,.4);
+}
+.lane-heads{ display:flex; position:sticky; top:0; z-index:5; }
+.lane-head{
+  flex:1; text-align:center; padding:8px 4px 10px; position:relative;
+}
+.lane-head .ic{font-size:1.5rem; display:block;}
+.lane-head .nm{font-family:var(--disp); font-size:.86rem;}
+.lane-head .tag{font-size:.66rem; color:var(--ink-soft); display:block;}
+.lane-head::after{
+  content:''; display:block; height:5px; border-radius:5px; margin:6px 10px 0;
+  background:var(--lane-c);
+}
+.rows{position:relative; padding-top:6px;}
+.lane-guides{ position:absolute; inset:0; pointer-events:none; }
+.lane-guides i{
+  position:absolute; top:0; bottom:0; width:0;
+  border-left:2px dashed rgba(34,40,62,.12);
+}
+.row{ position:relative; height:52px; margin:6px 0; }
+.row.msg-row{height:46px;}
+
+/* 액션 박스 */
+.act{
+  position:absolute; top:4px; height:44px; display:flex; align-items:center; justify-content:center;
+  border-radius:12px; padding:2px 8px; text-align:center;
+  font-size:.8rem; line-height:1.2; font-weight:600;
+  background:#fff; border:2px solid var(--lane-c); color:var(--ink);
+  box-shadow:0 3px 0 rgba(34,40,62,.12);
+  transition:transform .15s, box-shadow .15s;
+  z-index:2;
+}
+.act .book{ position:absolute; top:-10px; right:-8px; background:var(--yellow); border:none; border-radius:999px; width:24px; height:24px; font-size:.8rem; box-shadow:0 2px 4px rgba(0,0,0,.25); z-index:3;}
+.act.blank{
+  border-style:dashed; background:repeating-linear-gradient(45deg,#fff,#fff 8px,#FDF3DC 8px,#FDF3DC 16px);
+  color:var(--ink-soft); cursor:pointer; font-family:var(--disp); font-weight:400; font-size:1rem;
+  animation:pulse 1.6s ease-in-out infinite;
+}
+.act.blank.selected{
+  border-style:solid; border-width:3px; animation:none;
+  box-shadow:0 0 0 4px rgba(23,195,178,.35), 0 3px 0 rgba(34,40,62,.12);
+  transform:scale(1.04);
+}
+.act.solved{ background:#EAFBF1; border-color:var(--good); animation:pop .35s ease; }
+.act.buggy-caught{ background:#FFE9EC; border-color:var(--bad); text-decoration:line-through; }
+.act.tappable{cursor:pointer;}
+@keyframes pulse{ 0%,100%{box-shadow:0 3px 0 rgba(34,40,62,.12);} 50%{box-shadow:0 0 0 6px rgba(255,138,61,.18), 0 3px 0 rgba(34,40,62,.12);} }
+@keyframes pop{ 0%{transform:scale(.85)} 60%{transform:scale(1.08)} 100%{transform:scale(1)} }
+@keyframes shake{ 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
+.shake{animation:shake .4s ease;}
+
+/* 메시지 화살표 */
+.msg{ position:absolute; top:6px; height:34px; z-index:1;}
+.msg .line{
+  position:absolute; left:0; right:0; top:22px; height:0;
+  border-top:2.5px dashed var(--msg-c);
+}
+.msg .head{
+  position:absolute; top:16.5px; width:0; height:0;
+  border-top:7px solid transparent; border-bottom:7px solid transparent;
+}
+.msg.dir-r .head{ right:-2px; border-left:11px solid var(--msg-c); }
+.msg.dir-l .head{ left:-2px; border-right:11px solid var(--msg-c); }
+.msg .lbl{
+  position:absolute; left:50%; top:-4px; transform:translateX(-50%);
+  background:var(--msg-c); color:#fff; font-size:.72rem; font-weight:700;
+  padding:3px 10px; border-radius:999px; white-space:nowrap;
+  box-shadow:0 2px 5px rgba(0,0,0,.18);
+}
+.msg.blank .lbl{
+  background:#fff; color:var(--ink-soft); border:2px dashed var(--msg-c);
+  font-family:var(--disp); font-weight:400; font-size:.85rem; cursor:pointer;
+  animation:pulse 1.6s ease-in-out infinite; padding:2px 14px;
+}
+.msg.blank .lbl.selected{
+  border-style:solid; box-shadow:0 0 0 4px rgba(23,195,178,.35); animation:none; transform:translateX(-50%) scale(1.06);
+}
+.msg.solved .lbl{ background:var(--good); border:none; color:#fff; animation:pop .35s ease;}
+.msg.hint-flash .line,.msg.hint-flash .lbl{ animation:flash 1s ease 2; }
+@keyframes flash{ 0%,100%{filter:none} 50%{filter:brightness(1.6) drop-shadow(0 0 8px rgba(255,138,61,.9));} }
+.msg.dim,.act.dim{opacity:.35;}
+.row.running .act,.row.running .msg .lbl{ outline:3px solid var(--mint); outline-offset:2px; }
+
+/* ───── 힌트 말풍선 ───── */
+.hintbox{
+  display:none; margin-top:12px; background:rgba(255,138,61,.12);
+  border:1.5px solid rgba(255,138,61,.6); border-radius:14px; padding:12px 16px;
+  color:#FFE0C8; font-size:.94rem;
+}
+.hintbox.show{display:block; animation:pop .3s ease;}
+.hintbox b{color:var(--orange);}
+
+/* ───── 블록 보관함 ───── */
+.tray-wrap{ margin-top:14px; }
+.tray-title{ font-family:var(--disp); color:#C6CCE2; font-size:.92rem; margin-bottom:8px;}
+.tray{ display:flex; flex-wrap:wrap; gap:8px; }
+.chip{
+  background:var(--panel); color:var(--ink); border:2px solid #D8D2BF;
+  border-bottom-width:4px; border-radius:12px; padding:9px 14px;
+  font-size:.9rem; font-weight:700; transition:transform .1s;
+}
+.chip:active{transform:translateY(2px);}
+.chip.used{ display:none; }
+.chip.msg-chip{ border-color:var(--purple); background:#F4EFFF; }
+
+/* ───── 모달 ───── */
+.overlay{
+  display:none; position:fixed; inset:0; background:rgba(10,14,30,.72);
+  z-index:50; padding:18px; overflow:auto;
+  backdrop-filter:blur(3px);
+}
+.overlay.show{display:flex; align-items:center; justify-content:center;}
+.modal{
+  background:var(--panel); color:var(--ink); border-radius:20px;
+  max-width:480px; width:100%; padding:24px 22px; position:relative;
+  animation:pop .35s ease; box-shadow:0 30px 80px rgba(0,0,0,.5);
+}
+.modal h3{font-family:var(--disp); font-weight:400; margin:0 0 4px; font-size:1.35rem;}
+.modal .close-x{
+  position:absolute; top:12px; right:12px; border:none; background:#EDE7D5;
+  border-radius:999px; width:32px; height:32px; font-size:1rem;
+}
+.kcard{
+  border:3px solid var(--yellow); border-radius:16px; padding:16px;
+  background:linear-gradient(160deg,#FFFDF4,#FFF3D0);
+  margin-top:8px;
+}
+.kcard .kicon{font-size:2.2rem;}
+.kcard h4{font-family:var(--disp); font-weight:400; margin:6px 0 6px; font-size:1.2rem; color:#7A5B00;}
+.kcard p{margin:0 0 10px; font-size:.94rem; color:#4A4020;}
+.kcard .think{
+  background:rgba(255,255,255,.75); border-radius:10px; padding:9px 12px;
+  font-size:.86rem; color:#6B5A1E; border-left:4px solid var(--yellow);
+}
+.kcard .think b{color:#A87C00;}
+.got-banner{
+  text-align:center; font-family:var(--disp); color:#A87C00; font-size:1rem; margin-bottom:6px;
+}
+.modal .ok-btn{
+  display:block; width:100%; margin-top:16px; border:none;
+  background:var(--ink); color:#fff; font-family:var(--disp); font-size:1.05rem;
+  padding:13px; border-radius:14px;
+}
+.modal .ok-btn.mint{background:linear-gradient(135deg,var(--mint),#0FA396); color:#04302B;}
+
+/* 지식노트 그리드 */
+.note-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:12px;}
+.note-cell{
+  border:2px solid #E3DCC6; border-radius:14px; padding:12px 10px; text-align:center;
+  background:#fff; cursor:pointer;
+}
+.note-cell.locked{ opacity:.5; cursor:default; background:#F1EDE0;}
+.note-cell .ic{font-size:1.6rem;}
+.note-cell .tt{font-size:.82rem; font-weight:700; margin-top:4px;}
+.note-cell.unlocked{border-color:var(--yellow); box-shadow:0 3px 0 rgba(255,209,102,.5);}
+
+/* 라운드 완료 */
+.stars{text-align:center; font-size:2.2rem; letter-spacing:.15em; margin:6px 0;}
+.done-msg{text-align:center; color:var(--ink-soft); font-size:.95rem;}
+.confetti-zone{position:fixed; inset:0; pointer-events:none; z-index:60; overflow:hidden;}
+.cf{position:absolute; top:-20px; font-size:1.3rem; animation:fall linear forwards;}
+@keyframes fall{ to{ transform:translateY(110vh) rotate(720deg);} }
+
+/* ───── 최종 화면 ───── */
+.final-road{
+  position:relative; height:90px; margin:26px 0 8px; overflow:hidden;
+  border-radius:14px; background:linear-gradient(#0E1430,#0E1430) , var(--bg2);
+  border:1px solid rgba(255,255,255,.12);
+}
+.final-road .lane-line{
+  position:absolute; left:0; right:0; top:50%; height:0;
+  border-top:3px dashed rgba(255,255,255,.35);
+}
+.final-road .rider{
+  position:absolute; top:50%; transform:translateY(-58%);
+  font-size:2.2rem; animation:ride 3.2s linear infinite;
+}
+@keyframes ride{ from{left:-60px} to{left:105%} }
+.learn3{ display:grid; gap:10px; margin-top:18px; }
+.learn3 .item{
+  background:var(--bg2); border:1px solid rgba(255,255,255,.12);
+  border-radius:14px; padding:13px 16px; font-size:.95rem; color:#D9DEF0;
+}
+.learn3 .item b{color:var(--mint); font-family:var(--disp); font-weight:400;}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important; transition:none !important;}
+}
+@media (max-width:520px){
+  .screen{padding:14px 8px 90px;}
+  .hero h1{font-size:1.75rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════ 시작 화면 ═══════ -->
+<section class="screen active" id="scr-start">
+  <div class="hero">
+    <span class="badge">AI 리터러시 · 시스템 역설계 퍼즐</span>
+    <h1>번쩍배달 시스템 퍼즐<br><span class="glow">5개의 화면, 하나의 시스템</span></h1>
+    <p class="sub">치킨 한 마리가 우리 집에 오기까지 — 5개의 기계가 쉴 새 없이 정보를 주고받아요.
+    화살표(정보)를 힌트로, 비어 있는 절차를 채워 거대한 배달 시스템을 완성해 보세요!</p>
+  </div>
+
+  <div class="device-strip" id="device-strip"></div>
+
+  <div class="mission">
+    <h2>🎮 게임 방법</h2>
+    <ol>
+      <li>보드에는 <b>화살표(주고받는 정보)</b>가 미리 그려져 있어요.</li>
+      <li><b>물음표 빈칸</b>을 누르고, 아래 <b>블록 보관함</b>에서 알맞은 절차를 골라 채우세요.</li>
+      <li>모르겠다면 화살표를 보세요 — <b>들어온 정보</b>가 다음 할 일의 힌트예요!</li>
+      <li>퍼즐을 풀면 <b>📖 지식 카드</b>를 모을 수 있어요. (PG사가 뭐냐고요? 곧 알게 돼요!)</li>
+    </ol>
+    <p class="note">※ 이 게임은 배달의민족 같은 배달 앱의 실제 구조를 초등학생 눈높이로 모델링했어요.</p>
+  </div>
+
+  <button class="big-btn" id="btn-start">배달 시스템 열기 🛵</button>
+</section>
+
+<!-- ═══════ 게임 화면 ═══════ -->
+<section class="screen" id="scr-game">
+  <div class="topbar">
+    <div class="round-pill">
+      <div class="rd" id="round-title">라운드 1</div>
+      <div class="st" id="round-sub"></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="counter" id="blank-counter">남은 빈칸 <b>0</b></div>
+    <button class="note-btn" id="btn-note">📖 지식노트<span class="cnt" id="note-cnt">0/6</span></button>
+  </div>
+
+  <div class="round-intro" id="round-intro"></div>
+
+  <div class="board-wrap">
+    <div class="board">
+      <div class="lane-heads" id="lane-heads"></div>
+      <div class="rows" id="rows">
+        <div class="lane-guides" id="lane-guides"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hintbox" id="hintbox"></div>
+
+  <div class="tray-wrap" id="tray-wrap">
+    <div class="tray-title" id="tray-title">🧰 블록 보관함 — 빈칸을 먼저 누른 뒤, 알맞은 블록을 고르세요</div>
+    <div class="tray" id="tray"></div>
+  </div>
+</section>
+
+<!-- ═══════ 최종 화면 ═══════ -->
+<section class="screen" id="scr-final">
+  <div class="hero">
+    <span class="badge">🏆 시스템 설계자 인증</span>
+    <h1>축하해요!<br><span class="glow">배달 시스템을 완성했어요</span></h1>
+    <p class="sub" id="final-sub"></p>
+  </div>
+  <div class="final-road">
+    <div class="lane-line"></div>
+    <div class="rider">🛵💨</div>
+  </div>
+  <div class="learn3">
+    <div class="item"><b>① 허브 구조</b> — 사용자·점포·라이더는 서로 직접 연락하지 않아요. 모든 정보는 <b>서버</b>라는 중앙 우체국을 거쳐요.</div>
+    <div class="item"><b>② 정보가 절차를 만든다</b> — 화살표(정보)가 도착하면, 받은 쪽에서 다음 절차가 시작돼요. 여러분은 정보를 힌트로 절차를 역추론했어요!</div>
+    <div class="item"><b>③ 보이지 않는 전문가들</b> — PG사, 매칭 알고리즘, 정산… 화면 뒤에서 수많은 시스템이 협력하고 있어요.</div>
+  </div>
+  <button class="big-btn" id="btn-note-final" style="background:linear-gradient(135deg,var(--yellow),#EDB93A); box-shadow:0 6px 0 #B8890F, 0 14px 30px rgba(255,209,102,.3); color:#3A2E00;">📖 내가 모은 지식 카드 보기</button>
+  <button class="big-btn" id="btn-restart">처음부터 다시 하기 🔄</button>
+</section>
+
+<!-- ═══════ 모달들 ═══════ -->
+<div class="overlay" id="ov-card">
+  <div class="modal">
+    <button class="close-x" data-close="ov-card">✕</button>
+    <div class="got-banner" id="card-banner">🎉 지식 카드 획득!</div>
+    <div class="kcard" id="kcard-body"></div>
+    <button class="ok-btn mint" data-close="ov-card">알겠어요! 계속하기</button>
+  </div>
+</div>
+
+<div class="overlay" id="ov-note">
+  <div class="modal">
+    <button class="close-x" data-close="ov-note">✕</button>
+    <h3>📖 지식노트</h3>
+    <p style="margin:2px 0 0; font-size:.9rem; color:var(--ink-soft);">퍼즐을 풀며 모은 어려운 개념 카드예요. 카드를 누르면 다시 읽을 수 있어요.</p>
+    <div class="note-grid" id="note-grid"></div>
+    <button class="ok-btn" data-close="ov-note">닫기</button>
+  </div>
+</div>
+
+<div class="overlay" id="ov-done">
+  <div class="modal">
+    <h3 id="done-title" style="text-align:center;">라운드 완료!</h3>
+    <div class="stars" id="done-stars">⭐⭐⭐</div>
+    <p class="done-msg" id="done-msg"></p>
+    <button class="ok-btn mint" id="btn-next-round">다음 라운드로 ▶</button>
+  </div>
+</div>
+
+<div class="overlay" id="ov-bug">
+  <div class="modal">
+    <h3>🐛 버그 발견!</h3>
+    <p id="bug-msg" style="font-size:.95rem;"></p>
+    <button class="ok-btn mint" data-close="ov-bug">그렇구나! 계속 찾기</button>
+  </div>
+</div>
+
+<div class="confetti-zone" id="confetti"></div>
+
+<script>
+/* ═══════════ 데이터 ═══════════ */
+const LANES = [
+  {icon:'📱', name:'사용자 앱',   tag:'주문하는 나',      c:'#4E8CFF'},
+  {icon:'🖥️', name:'배달 서버',   tag:'중앙 우체국',      c:'#9B6BFF'},
+  {icon:'💳', name:'PG사',        tag:'결제 대행 전문가',  c:'#17C3B2'},
+  {icon:'🏪', name:'점포',        tag:'사장님 태블릿',    c:'#FF8A3D'},
+  {icon:'🛵', name:'라이더',      tag:'배달 기사 폰',     c:'#FF5D73'},
+];
+
+const CARDS = {
+  pg:{icon:'💳', title:'PG사 (결제 대행사)',
+    body:'우리가 앱에서 카드로 결제하면, 가게가 카드 회사와 직접 계산할까요? 아니에요! 가게마다 모든 카드사와 연결하는 건 너무 복잡하고 위험해요. 그래서 <b>PG사</b>라는 "돈 전문 회사"가 가게 대신 카드사와 연결해, 결제를 안전하게 처리해 줘요. 우리 눈에 보이지 않는 곳에서 늘 일하고 있죠!',
+    think:'PG사가 없다면 동네 작은 가게들은 어떤 점이 힘들어질까요?'},
+  server:{icon:'🖥️', title:'서버 = 중앙 허브',
+    body:'사용자, 점포, 라이더는 서로에게 <b>직접</b> 연락하지 않아요. 모든 정보는 <b>서버</b>라는 중앙 우체국을 거쳐요. 정보가 한곳에 모이면 순서가 꼬이지 않고, 무슨 일이 있었는지 기록도 남길 수 있거든요. 이런 모양을 <b>허브(Hub) 구조</b>라고 해요.',
+    think:'만약 사용자가 점포에 직접 전화로 주문한다면, 어떤 문제가 생길 수 있을까요?'},
+  push:{icon:'🔔', title:'푸시 알림',
+    body:'"주문이 접수되었어요!" 하고 폰이 먼저 알려주는 것, 신기하지 않나요? 내가 물어보기 전에 <b>서버가 먼저</b> 내 폰으로 소식을 밀어(push) 보내주는 것을 <b>푸시 알림</b>이라고 해요. 서버는 주문의 상태가 바뀔 때마다 알림을 보내요.',
+    think:'푸시 알림이 없다면, 우리는 배달 상황을 어떻게 확인해야 할까요?'},
+  matching:{icon:'🧭', title:'매칭 알고리즘',
+    body:'배달 콜은 아무에게나 가지 않아요! 서버는 <b>가게와의 거리, 라이더가 가는 방향, 지금 하는 배달</b> 같은 조건을 순식간에 계산해서 가장 알맞은 라이더를 찾아요. 이런 "짝을 찾는 계산 규칙"을 <b>매칭 알고리즘</b>이라고 해요. AI 추천도 이런 계산의 친구랍니다.',
+    think:'여러분이 매칭 규칙을 만든다면, 어떤 조건을 가장 중요하게 볼 건가요?'},
+  state:{icon:'📍', title:'상태(State)와 실시간 위치',
+    body:'주문에는 <b>상태</b>가 있어요: 접수 → 조리중 → 배달중 → 완료. 그리고 라이더 폰은 <b>GPS</b>로 자기 위치를 몇 초마다 서버로 보내요. 그래서 우리 앱 지도에 라이더가 움직이는 게 보이는 거예요! "지금 어떤 상태인가"를 기억하고 갱신하는 것이 시스템의 핵심이에요.',
+    think:'교통카드의 "잔액"도 상태예요. 또 어떤 상태들이 우리 주변에 있을까요?'},
+  settle:{icon:'💰', title:'정산',
+    body:'내가 낸 치킨값 20,000원은 어디로 갈까요? 한 사람이 다 갖는 게 아니에요! <b>점포(음식값) + 라이더(배달료) + 배달앱 회사(수수료)</b>로 자동으로 나뉘어요. 이렇게 "누가 얼마를 받을지 계산해서 나눠주는 일"을 <b>정산</b>이라고 해요. 서버가 밤사이 조용히 처리한답니다.',
+    think:'정산 계산이 틀리면 누가 곤란해질까요? 왜 컴퓨터가 하는 게 좋을까요?'},
+};
+const CARD_ORDER = ['pg','server','push','matching','state','settle'];
+
+/* 이벤트: {t:'act',lane,txt,blank?,hint?,card?,book?} | {t:'msg',from,to,lbl,blank?,hint?,book?} */
+const ROUNDS = [
+{
+  title:'라운드 1 · 주문의 여정',
+  sub:'사용자 → 서버 → PG사 → 점포',
+  intro:'🍗 치킨을 주문해 볼까요? 아직 라이더는 등장하지 않아요. <b>화살표에 적힌 정보</b>를 힌트로, 각 기계의 빈칸 절차를 채워 보세요!',
+  dimLanes:[4],
+  events:[
+    {t:'act', lane:0, txt:'메뉴 고르기 🍗'},
+    {t:'act', lane:0, txt:'장바구니 담기'},
+    {t:'act', lane:0, blank:true, ans:'주문·결제 버튼 누르기',
+      hint:'바로 아래 화살표를 보세요! 서버로 <b>「주문 정보」</b>가 날아가려면, 사용자가 마지막으로 무엇을 눌러야 할까요?'},
+    {t:'msg', from:0, to:1, lbl:'주문 정보 📦'},
+    {t:'act', lane:1, blank:true, ans:'주문 접수',
+      hint:'<b>「주문 정보」</b>가 서버에 방금 도착했어요. 서버가 가장 먼저 할 일은 이 주문을 받아들이는 거예요.'},
+    {t:'msg', from:1, to:2, lbl:'결제 요청 💳'},
+    {t:'act', lane:2, blank:true, ans:'카드 확인 후 승인', card:'pg',
+      hint:'서버가 돈 전문 회사인 <b>PG사</b>에게 「결제 요청」을 보냈어요. 카드가 진짜인지, 돈이 있는지 확인하는 일은 누구의 몫일까요?'},
+    {t:'msg', from:2, to:1, lbl:'승인 완료 ✅'},
+    {t:'act', lane:1, txt:'결제 성공 확인'},
+    {t:'msg', from:1, to:3, lbl:'주문서 전송 🧾'},
+    {t:'act', lane:3, blank:true, ans:'주문 확인 → 접수 누르기', card:'server',
+      hint:'점포 태블릿에 <b>「주문서」</b>가 띵동! 도착했어요. 사장님이 "네, 만들게요!" 하고 눌러야 하는 버튼은?'},
+    {t:'msg', from:3, to:1, lbl:'접수 완료'},
+    {t:'msg', from:1, to:0, lbl:'알림: 주문 접수! 🔔', book:'push'},
+  ],
+  distractors:['음식 먹기','배달 출발하기','라이더 호출하기'],
+},
+{
+  title:'라운드 2 · 라이더 출동',
+  sub:'5개 디바이스 총출동!',
+  intro:'🛵 이제 라이더가 등장해요! 조리부터 배달 완료, 그리고 마지막 <b>돈 나누기</b>까지 — 시스템 전체를 완성해 보세요.',
+  dimLanes:[2],
+  events:[
+    {t:'act', lane:3, txt:'조리 시작 🍳'},
+    {t:'act', lane:1, blank:true, ans:'가까운 라이더 찾기(매칭)', card:'matching',
+      hint:'음식이 만들어지고 있어요. 배달할 사람이 필요하죠! 아래 화살표처럼 <b>「배달 콜」</b>을 보내기 전에, 서버는 <b>누구에게</b> 보낼지 계산해야 해요.'},
+    {t:'msg', from:1, to:4, lbl:'배달 콜 📢'},
+    {t:'act', lane:4, blank:true, ans:'콜 수락하기', card:'push',
+      hint:'라이더 폰에 <b>「배달 콜」</b>이 떴어요! 이 배달을 맡겠다고 답하려면 무엇을 눌러야 할까요?'},
+    {t:'msg', from:4, to:1, lbl:'수락 알림'},
+    {t:'msg', from:1, to:0, lbl:'알림: 라이더 배정! 🔔', book:'push'},
+    {t:'act', lane:3, blank:true, ans:'조리 완료 버튼 누르기',
+      hint:'음식이 완성됐어요! 라이더가 가지러 오게 하려면, 점포가 서버에 <b>"다 됐어요"</b>라고 알려야 해요. 아래 화살표를 보세요.'},
+    {t:'msg', from:3, to:1, lbl:'조리 완료 알림'},
+    {t:'msg', from:1, to:4, lbl:'픽업 요청'},
+    {t:'act', lane:4, txt:'가게에서 음식 픽업 🛍️'},
+    {t:'act', lane:4, blank:true, ans:'고객 집으로 이동(위치 전송)', card:'state',
+      hint:'음식을 받았으니 이제 출발! 이동하는 동안 우리 앱 지도에 라이더가 보이려면, 라이더 폰이 <b>「실시간 위치」</b>를 계속 보내야 해요.'},
+    {t:'msg', from:4, to:1, lbl:'실시간 위치 📍'},
+    {t:'msg', from:1, to:0, lbl:'지도에 라이더 표시 🗺️'},
+    {t:'act', lane:4, txt:'배달 완료! 🎉'},
+    {t:'msg', from:4, to:1, lbl:'완료 보고'},
+    {t:'msg', from:1, to:0, lbl:'알림: 맛있게 드세요 😋'},
+    {t:'act', lane:1, blank:true, ans:'정산 처리(돈 나누기)', card:'settle',
+      hint:'배달이 다 끝났어요. 고객이 낸 돈을 <b>점포·라이더·배달앱</b>이 나눠 가져야 해요. 이 "돈 나누는 계산"을 하는 마지막 절차는?'},
+  ],
+  distractors:['메뉴 고르기','카드 확인 후 승인','주문서 전송하기'],
+},
+{
+  title:'라운드 3 · 정보의 비밀',
+  sub:'이번엔 화살표가 비어 있다!',
+  intro:'🔍 반대로 생각해 봐요! 이번엔 <b>절차는 다 보이고, 화살표(정보)가 물음표</b>예요. 앞뒤 절차를 힌트로, 기계들이 무슨 정보를 주고받았는지 추리하세요.',
+  dimLanes:[],
+  events:[
+    {t:'act', lane:0, txt:'주문·결제 버튼 누르기'},
+    {t:'msg', from:0, to:1, blank:true, ans:'주문 정보 📦',
+      hint:'사용자가 방금 <b>주문 버튼</b>을 눌렀어요. 그럼 서버로 무엇이 날아갈까요? (서버는 이걸 받고 「주문 접수」를 해요)'},
+    {t:'act', lane:1, txt:'주문 접수'},
+    {t:'msg', from:1, to:2, blank:true, ans:'결제 요청 💳',
+      hint:'다음 절차를 보세요 — PG사가 <b>「카드 확인 후 승인」</b>을 해요. 그럼 서버가 PG사에게 보낸 부탁은 무엇이었을까요?'},
+    {t:'act', lane:2, txt:'카드 확인 후 승인'},
+    {t:'msg', from:2, to:1, blank:true, ans:'승인 완료 ✅',
+      hint:'PG사가 카드 확인을 <b>무사히 끝냈어요</b>. 서버에게 뭐라고 답장할까요?'},
+    {t:'msg', from:1, to:3, blank:true, ans:'주문서 전송 🧾',
+      hint:'점포가 다음 절차에서 <b>「접수 후 조리」</b>를 시작해요. 조리를 하려면 점포 태블릿에 무엇이 도착해야 할까요?'},
+    {t:'act', lane:3, txt:'접수 후 조리 🍳'},
+    {t:'act', lane:1, txt:'가까운 라이더 찾기(매칭)'},
+    {t:'msg', from:1, to:4, blank:true, ans:'배달 콜 📢',
+      hint:'서버가 알맞은 라이더를 <b>찾았어요</b>. 라이더 폰으로 무엇을 보낼까요? (라이더는 이걸 받고 「수락」해요)'},
+    {t:'act', lane:4, txt:'콜 수락 → 픽업 → 이동'},
+    {t:'msg', from:4, to:1, blank:true, ans:'실시간 위치 📍',
+      hint:'라이더가 이동하는 동안, 우리 앱 <b>지도에 라이더가 보여요</b>. 라이더 폰이 서버로 계속 보내는 것은?'},
+    {t:'msg', from:1, to:0, lbl:'지도에 라이더 표시 🗺️'},
+    {t:'act', lane:1, txt:'정산 처리(돈 나누기)'},
+  ],
+  distractors:['쿠폰 발급 🎟️','메뉴 사진 📷','오늘의 날씨 ☀️'],
+},
+{
+  title:'보너스 · 버그를 찾아라!',
+  sub:'순서가 꼬인 곳 2군데를 찾아 누르세요',
+  intro:'🐛 어이쿠! 시스템 순서가 <b>2군데</b> 꼬여 버렸어요. 순서가 이상한 절차를 찾아 <b>탁!</b> 눌러 주세요. (힌트: "아직 ○○도 안 했는데?"를 떠올려요)',
+  dimLanes:[],
+  bugHunt:true,
+  events:[
+    {t:'act', lane:0, txt:'주문·결제 버튼 누르기'},
+    {t:'msg', from:0, to:1, lbl:'주문 정보 📦'},
+    {t:'act', lane:1, txt:'주문 접수'},
+    {t:'act', lane:3, txt:'주문서 받고 조리 시작 🍳', bug:true,
+      bugMsg:'잡았다! 🐛 아직 <b>결제 승인</b>이 끝나지 않았는데 점포가 조리를 시작했어요. 돈을 못 받을 수도 있겠죠? 올바른 순서: 결제 승인 ✅ → 주문서 전송 → 조리 시작!'},
+    {t:'msg', from:1, to:2, lbl:'결제 요청 💳'},
+    {t:'act', lane:2, txt:'카드 확인 후 승인'},
+    {t:'msg', from:2, to:1, lbl:'승인 완료 ✅'},
+    {t:'act', lane:1, txt:'가까운 라이더 찾기(매칭)'},
+    {t:'msg', from:1, to:4, lbl:'배달 콜 📢'},
+    {t:'act', lane:4, txt:'콜 수락하기'},
+    {t:'act', lane:4, txt:'배달 완료! 🎉', bug:true,
+      bugMsg:'잡았다! 🐛 아직 가게에서 <b>음식을 픽업하지도 않았는데</b> 배달 완료라니요! 빈손 배달이 될 뻔했어요. 올바른 순서: 픽업 🛍️ → 이동 → 배달 완료!'},
+    {t:'act', lane:4, txt:'가게에서 음식 픽업 🛍️'},
+    {t:'msg', from:4, to:1, lbl:'완료 보고'},
+    {t:'msg', from:1, to:0, lbl:'알림: 맛있게 드세요 😋'},
+  ],
+},
+];
+
+/* ═══════════ 상태 ═══════════ */
+const S = {
+  round:0,
+  blanksLeft:0,
+  bugsLeft:0,
+  selectedBlank:null,   // {ev, el}
+  collected:new Set(),
+  wrongTries:0,
+};
+const $ = id => document.getElementById(id);
+const LW = 100 / LANES.length; // 레인 폭(%)
+
+/* ═══════════ 시작 화면 ═══════════ */
+(function initStart(){
+  const strip = $('device-strip');
+  LANES.forEach(l=>{
+    const d = document.createElement('div');
+    d.className='device-chip';
+    d.innerHTML = `<span class="ic">${l.icon}</span><span class="nm">${l.name}</span><div class="bar" style="background:${l.c}"></div>`;
+    strip.appendChild(d);
+  });
+})();
+$('btn-start').onclick = ()=>{ show('scr-game'); loadRound(0); };
+$('btn-restart').onclick = ()=>{
+  S.round=0; S.collected=new Set(); updateNoteCnt();
+  show('scr-game'); loadRound(0);
+};
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo({top:0});
+}
+
+/* ═══════════ 라운드 렌더링 ═══════════ */
+function loadRound(idx){
+  S.round = idx;
+  S.selectedBlank = null;
+  S.wrongTries = 0;
+  const R = ROUNDS[idx];
+  $('round-title').textContent = R.title;
+  $('round-sub').textContent = R.sub;
+  $('round-intro').innerHTML = R.intro;
+  hideHint();
+
+  // 레인 헤더
+  const heads = $('lane-heads'); heads.innerHTML='';
+  LANES.forEach((l,i)=>{
+    const h = document.createElement('div');
+    h.className='lane-head'; h.style.setProperty('--lane-c', l.c);
+    if(R.dimLanes.includes(i)) h.style.opacity=.35;
+    h.innerHTML=`<span class="ic">${l.icon}</span><span class="nm">${l.name}</span><span class="tag">${l.tag}</span>`;
+    heads.appendChild(h);
+  });
+
+  // 행 렌더링
+  const rows = $('rows');
+  rows.innerHTML = '<div class="lane-guides" id="lane-guides"></div>';
+  const guides = $('lane-guides');
+  LANES.forEach((_,i)=>{
+    const g=document.createElement('i');
+    g.style.left = `calc(${(i+0.5)*LW}% - 1px)`;
+    guides.appendChild(g);
+  });
+
+  S.blanksLeft = 0; S.bugsLeft = 0;
+  R.events.forEach(ev=>{
+    const row = document.createElement('div');
+    row.className = 'row' + (ev.t==='msg' ? ' msg-row' : '');
+    if(ev.t==='act'){
+      const a = document.createElement('div');
+      a.className='act';
+      a.style.setProperty('--lane-c', LANES[ev.lane].c);
+      a.style.left = `calc(${ev.lane*LW}% + 6px)`;
+      a.style.width = `calc(${LW}% - 12px)`;
+      if(ev.blank){
+        a.classList.add('blank'); a.textContent='?';
+        a.setAttribute('role','button'); a.tabIndex=0;
+        a.onclick = ()=>selectBlank(ev,a);
+        a.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();selectBlank(ev,a);} };
+        S.blanksLeft++;
+      } else {
+        a.textContent = ev.txt;
+        if(R.bugHunt){
+          a.classList.add('tappable');
+          a.onclick = ()=>tapBugCandidate(ev,a);
+          if(ev.bug) S.bugsLeft++;
+        }
+      }
+      if(ev.book) addBook(a, ev.book);
+      if(R.dimLanes.includes(ev.lane)) a.classList.add('dim');
+      row.appendChild(a);
+    } else {
+      const m = document.createElement('div');
+      const lo = Math.min(ev.from, ev.to), hi = Math.max(ev.from, ev.to);
+      m.className = 'msg ' + (ev.to > ev.from ? 'dir-r' : 'dir-l');
+      m.style.setProperty('--msg-c', LANES[ev.from].c);
+      m.style.left = `calc(${(lo+0.5)*LW}% )`;
+      m.style.width = `calc(${(hi-lo)*LW}%)`;
+      const lbl = document.createElement('span');
+      lbl.className='lbl';
+      if(ev.blank){
+        m.classList.add('blank'); lbl.textContent='?';
+        lbl.setAttribute('role','button'); lbl.tabIndex=0;
+        lbl.onclick = ()=>selectBlank(ev, lbl, m);
+        lbl.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();selectBlank(ev,lbl,m);} };
+        S.blanksLeft++;
+      } else {
+        lbl.textContent = ev.lbl;
+        if(ev.book) addBookMsg(m, ev.book);
+      }
+      m.innerHTML += '<span class="line"></span><span class="head"></span>';
+      m.appendChild(lbl);
+      row.appendChild(m);
+      ev._msgEl = m;
+    }
+    ev._rowEl = row;
+    rows.appendChild(row);
+  });
+
+  // 보관함
+  buildTray(R);
+  updateCounter();
+  updateNoteCnt();
+  $('tray-wrap').style.display = R.bugHunt ? 'none' : '';
+  if(R.bugHunt){ $('blank-counter').innerHTML = `남은 버그 <b>${S.bugsLeft}</b>마리 🐛`; }
+}
+
+function addBook(el, cardKey){
+  const b = document.createElement('button');
+  b.className='book'; b.textContent='📖'; b.title='지식 카드 읽기';
+  b.onclick = e=>{ e.stopPropagation(); giveCard(cardKey, true); };
+  el.appendChild(b);
+}
+function addBookMsg(msgEl, cardKey){
+  const b = document.createElement('button');
+  b.className='book'; b.textContent='📖'; b.title='지식 카드 읽기';
+  b.style.cssText='position:absolute; top:-6px; right:2px; background:var(--yellow); border:none; border-radius:999px; width:24px; height:24px; font-size:.8rem; z-index:4; box-shadow:0 2px 4px rgba(0,0,0,.25); cursor:pointer;';
+  b.onclick = e=>{ e.stopPropagation(); giveCard(cardKey, true); };
+  msgEl.appendChild(b);
+}
+
+/* ═══════════ 보관함 ═══════════ */
+function buildTray(R){
+  const tray = $('tray'); tray.innerHTML='';
+  if(R.bugHunt) return;
+  const answers = R.events.filter(e=>e.blank).map(e=>({txt:e.ans, msg:e.t==='msg'}));
+  const pool = answers.concat((R.distractors||[]).map(d=>({txt:d, msg:R.events.some(e=>e.blank&&e.t==='msg')})));
+  shuffle(pool).forEach(item=>{
+    const c = document.createElement('button');
+    c.className='chip' + (item.msg?' msg-chip':'');
+    c.textContent = item.txt;
+    c.onclick = ()=>tryPlace(item.txt, c);
+    tray.appendChild(c);
+  });
+  $('tray-title').textContent = R.events.some(e=>e.blank&&e.t==='msg')
+    ? '🧰 정보 보관함 — 물음표 화살표를 먼저 누른 뒤, 알맞은 정보를 고르세요'
+    : '🧰 블록 보관함 — 빈칸을 먼저 누른 뒤, 알맞은 블록을 고르세요';
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+/* ═══════════ 퍼즐 상호작용 ═══════════ */
+function selectBlank(ev, el, msgEl){
+  document.querySelectorAll('.selected').forEach(x=>x.classList.remove('selected'));
+  S.selectedBlank = {ev, el, msgEl};
+  el.classList.add('selected');
+  hideHint();
+}
+
+function tryPlace(txt, chip){
+  if(!S.selectedBlank){
+    showHint('먼저 <b>물음표 빈칸</b>을 콕! 눌러 주세요. 그다음 블록을 고르는 거예요 😊');
+    chip.classList.add('shake'); setTimeout(()=>chip.classList.remove('shake'),450);
+    return;
+  }
+  const {ev, el, msgEl} = S.selectedBlank;
+  if(txt === ev.ans){
+    // 정답!
+    el.classList.remove('selected','blank');
+    if(ev.t==='act'){ el.classList.add('solved'); el.textContent = ev.ans; el.onclick=null; }
+    else { (msgEl||el.closest('.msg')).classList.add('solved'); (msgEl||el.closest('.msg')).classList.remove('blank'); el.textContent = ev.ans; el.onclick=null; el.classList.remove('selected'); }
+    chip.classList.add('used');
+    S.selectedBlank = null;
+    S.blanksLeft--;
+    updateCounter();
+    hideHint();
+    if(ev.card) giveCard(ev.card, false);
+    if(S.blanksLeft===0){
+      setTimeout(()=>runReplayThenDone(), ev.card?900:350);
+    }
+  } else {
+    // 오답 → 힌트
+    S.wrongTries++;
+    chip.classList.add('shake'); el.classList.add('shake');
+    setTimeout(()=>{chip.classList.remove('shake'); el.classList.remove('shake');},450);
+    flashNeighborMsg(ev);
+    showHint(ev.hint || '앞뒤 <b>화살표(정보)</b>를 다시 살펴보세요!');
+  }
+}
+
+/* 오답 시: 인접한 메시지 화살표 반짝이기 */
+function flashNeighborMsg(ev){
+  const R = ROUNDS[S.round];
+  const idx = R.events.indexOf(ev);
+  let target = null;
+  if(ev.t==='act'){
+    for(let d=1; d<=2 && !target; d++){
+      const prev = R.events[idx-d], next = R.events[idx+d];
+      if(prev && prev.t==='msg' && (prev.to===ev.lane)) target = prev;
+      else if(next && next.t==='msg' && (next.from===ev.lane)) target = next;
+    }
+  } else {
+    target = ev;
+  }
+  if(target && target._msgEl){
+    target._msgEl.classList.add('hint-flash');
+    setTimeout(()=>target._msgEl.classList.remove('hint-flash'), 2100);
+  }
+}
+
+function showHint(html){
+  const h = $('hintbox');
+  h.innerHTML = '💡 <b>힌트</b> — ' + html;
+  h.classList.add('show');
+}
+function hideHint(){ $('hintbox').classList.remove('show'); }
+
+function updateCounter(){
+  $('blank-counter').innerHTML = `남은 빈칸 <b>${S.blanksLeft}</b>`;
+}
+
+/* ═══════════ 버그 헌트 ═══════════ */
+function tapBugCandidate(ev, el){
+  if(ev.bug && !ev._caught){
+    ev._caught = true;
+    el.classList.add('buggy-caught'); el.onclick=null;
+    S.bugsLeft--;
+    $('blank-counter').innerHTML = `남은 버그 <b>${S.bugsLeft}</b>마리 🐛`;
+    $('bug-msg').innerHTML = ev.bugMsg;
+    openOv('ov-bug');
+    if(S.bugsLeft===0){ setTimeout(()=>roundDone(), 400); }
+  } else if(!ev.bug){
+    el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'),450);
+    showHint('이 절차는 제자리에 있어요! <b>"아직 결제도 안 됐는데?", "아직 음식도 안 받았는데?"</b> 같은 이상한 순서를 찾아보세요 🐛');
+  }
+}
+
+/* ═══════════ 지식 카드 ═══════════ */
+function giveCard(key, isReread){
+  const c = CARDS[key];
+  const isNew = !S.collected.has(key);
+  S.collected.add(key);
+  updateNoteCnt();
+  $('card-banner').textContent = isNew && !isReread ? '🎉 지식 카드 획득!' : '📖 지식 카드';
+  $('kcard-body').innerHTML = `
+    <div class="kicon">${c.icon}</div>
+    <h4>${c.title}</h4>
+    <p>${c.body}</p>
+    <div class="think"><b>🤔 생각해 보기</b><br>${c.think}</div>`;
+  openOv('ov-card');
+}
+function updateNoteCnt(){
+  $('note-cnt').textContent = `${S.collected.size}/${CARD_ORDER.length}`;
+}
+$('btn-note').onclick = openNote;
+$('btn-note-final').onclick = openNote;
+function openNote(){
+  const g = $('note-grid'); g.innerHTML='';
+  CARD_ORDER.forEach(k=>{
+    const c = CARDS[k];
+    const has = S.collected.has(k);
+    const cell = document.createElement('div');
+    cell.className = 'note-cell ' + (has?'unlocked':'locked');
+    cell.innerHTML = has
+      ? `<div class="ic">${c.icon}</div><div class="tt">${c.title}</div>`
+      : `<div class="ic">🔒</div><div class="tt">아직 발견 못 함</div>`;
+    if(has) cell.onclick = ()=>{ closeOv('ov-note'); giveCard(k, true); };
+    g.appendChild(cell);
+  });
+  openOv('ov-note');
+}
+
+/* ═══════════ 라운드 완료 ═══════════ */
+function runReplayThenDone(){
+  // 작동 시험: 행을 순서대로 하이라이트
+  const R = ROUNDS[S.round];
+  showHint('⚙️ <b>작동 시험 중…</b> 여러분이 완성한 시스템으로 주문 하나가 흘러갑니다!');
+  R.events.forEach((ev,i)=>{
+    setTimeout(()=>{
+      document.querySelectorAll('.row.running').forEach(r=>r.classList.remove('running'));
+      ev._rowEl.classList.add('running');
+      ev._rowEl.scrollIntoView({block:'nearest', behavior:'smooth'});
+      if(i===R.events.length-1){
+        setTimeout(()=>{ ev._rowEl.classList.remove('running'); roundDone(); }, 450);
+      }
+    }, 380*i);
+  });
+}
+
+function roundDone(){
+  hideHint();
+  confetti();
+  const last = S.round === ROUNDS.length-1;
+  const stars = S.wrongTries===0 ? '⭐⭐⭐' : (S.wrongTries<=2 ? '⭐⭐✨' : '⭐✨✨');
+  $('done-title').textContent = ROUNDS[S.round].title + ' 완료!';
+  $('done-stars').textContent = ROUNDS[S.round].bugHunt ? '🐛🎯🏆' : stars;
+  const msgs = [
+    '주문이 점포까지 무사히 도착했어요! 보이지 않던 PG사의 활약, 눈치챘나요?',
+    '5개 디바이스가 완벽하게 협력했어요! 정산까지 끝낸 여러분은 이제 시스템 반장님.',
+    '절차만 보고 정보를 추리하다니, 진짜 설계자의 눈이에요! 👀',
+    '버그를 모두 잡았어요! 순서가 곧 설계라는 걸 증명했네요.',
+  ];
+  $('done-msg').textContent = msgs[S.round];
+  $('btn-next-round').textContent = last ? '결과 보기 🏆' : '다음 라운드로 ▶';
+  openOv('ov-done');
+}
+$('btn-next-round').onclick = ()=>{
+  closeOv('ov-done');
+  if(S.round === ROUNDS.length-1){
+    $('final-sub').textContent = `지식 카드 ${S.collected.size}/6장 수집! 이제 여러분은 배달 앱을 '쓰는 사람'이 아니라 '이해하는 사람'이에요.`;
+    show('scr-final');
+  } else {
+    loadRound(S.round+1);
+  }
+};
+
+/* ═══════════ 공통: 모달/폭죽 ═══════════ */
+function openOv(id){ $(id).classList.add('show'); }
+function closeOv(id){ $(id).classList.remove('show'); }
+document.querySelectorAll('[data-close]').forEach(b=>{
+  b.onclick = ()=>closeOv(b.dataset.close);
+});
+function confetti(){
+  const zone = $('confetti');
+  const emo = ['🎉','🍗','🛵','⭐','💳','📦','🧾'];
+  for(let i=0;i<26;i++){
+    const s = document.createElement('span');
+    s.className='cf';
+    s.textContent = emo[Math.floor(Math.random()*emo.length)];
+    s.style.left = Math.random()*100+'vw';
+    s.style.animationDuration = (2+Math.random()*2)+'s';
+    s.style.animationDelay = (Math.random()*0.6)+'s';
+    zone.appendChild(s);
+    setTimeout(()=>s.remove(), 5000);
+  }
+}
+</script>
+</body>
+</html>
